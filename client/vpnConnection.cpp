@@ -41,6 +41,10 @@ VpnConnection::VpnConnection(SecureServersRepository* serversRepository, SecureA
     : QObject(parent),
       m_serversRepository(serversRepository),
       m_appSettingsRepository(appSettingsRepository),
+#ifdef AMNEZIA_DESKTOP_SPA
+      m_spa(this),
+      m_spaRenewal(this),
+#endif
       m_checkTimer(this),
       m_connectionState(Vpn::ConnectionState::Disconnected)
 {

@@ -3,6 +3,7 @@
 
 #include <QCoreApplication>
 #include <QFile>
+#include <QThread>
 #include <QTimer>
 
 int main(int argc, char **argv)
@@ -18,6 +19,10 @@ int main(int argc, char **argv)
         return 3;
     }
     if (argc == 1) {
+        SpaAdmission admission;
+        if (!admission.findChild<QUdpSocket *>() || !admission.findChild<QTimer *>()) {
+            return 4;
+        }
         return 0;
     }
     const auto args = app.arguments();
@@ -29,10 +34,21 @@ int main(int argc, char **argv)
         return 3;
     }
     const auto key = QByteArray::fromHex(keyFile.readAll().trimmed());
+    QThread worker;
     SpaAdmission admission;
-    QTimer::singleShot(0, &app, [&] {
+    auto *mainThread = QThread::currentThread();
+    admission.moveToThread(&worker);
+    QTimer::singleShot(0, &admission, [&] {
         admission.request(QHostAddress(args[1]), args[2].toUShort(), key,
-                          [&](bool confirmed) { app.exit(confirmed ? 0 : 2); });
+                          [&](bool confirmed) {
+                              admission.moveToThread(mainThread);
+                              QMetaObject::invokeMethod(&app, [&, confirmed] { app.exit(confirmed ? 0 : 2); },
+                                                        Qt::QueuedConnection);
+                          });
     });
-    return app.exec();
+    worker.start();
+    const int result = app.exec();
+    worker.quit();
+    worker.wait();
+    return result;
 }

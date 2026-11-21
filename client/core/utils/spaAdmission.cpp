@@ -30,7 +30,8 @@ namespace
     }
 }
 
-SpaAdmission::SpaAdmission(QObject *parent) : QObject(parent)
+SpaAdmission::SpaAdmission(QObject *parent)
+    : QObject(parent), m_socket(this), m_timeout(this)
 {
     m_timeout.setSingleShot(true);
     connect(&m_timeout, &QTimer::timeout, this, [this] { complete(false); });
