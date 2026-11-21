@@ -33,6 +33,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.drop
@@ -98,6 +99,7 @@ open class AmneziaVpnService : VpnService() {
         get() = protocolState.value == UNKNOWN
 
     private var connectionJob: Job? = null
+    private var spaAdmission: SpaAdmission? = null
     private var disconnectionJob: Job? = null
     private var trafficStatsUpdateJob: Job? = null
     // private var statisticsSendingJob: Job? = null
@@ -524,8 +526,17 @@ open class AmneziaVpnService : VpnService() {
             disconnectionJob = null
 
             vpnProto?.protocol?.let { protocol ->
+                val admission = if (vpnProto == VpnProto.AWG) {
+                    config.optJSONObject("awg_config_data")?.let { SpaAdmission.fromAwgConfig(it) }
+                } else null
+                spaAdmission = admission
+                if (admission?.authorize(::protect) == false) {
+                    throw VpnStartException("SPA admission timed out")
+                }
+                ensureActive()
                 protocol.initialize(applicationContext, protocolState, ::onError)
                 protocol.startVpn(config, Builder(), ::protect)
+                admission?.renew(::protect, confirmed = true) { !isDisconnected }
             }
         }
     }
@@ -541,6 +552,7 @@ open class AmneziaVpnService : VpnService() {
         disconnectionJob = connectionScope.launch {
             connectionJob?.cancelAndJoin()
             connectionJob = null
+            spaAdmission = null
 
             vpnProto?.protocol?.stopVpn()
 
@@ -564,8 +576,14 @@ open class AmneziaVpnService : VpnService() {
 
         protocolState.value = RECONNECTING
 
+        val previous = connectionJob
         connectionJob = connectionScope.launch {
+            previous?.cancelAndJoin()
+            val admission = spaAdmission
+            val confirmed = admission?.authorize(::protect) ?: true
+            ensureActive()
             vpnProto?.protocol?.reconnectVpn(Builder(), ::protect)
+            admission?.renew(::protect, confirmed) { !isDisconnected }
         }
     }
 

@@ -37,7 +37,11 @@ android {
     val abiList = qtTargetAbiList.split(",")
 
     defaultConfig {
-        applicationId = "org.amnezia.vpn"
+        applicationId = if (providers.gradleProperty("coldwireTestApp").orNull == "true") {
+            "org.amnezia.vpn.coldwire"
+        } else {
+            "org.amnezia.vpn"
+        }
         targetSdk = qtTargetSdkVersion.toInt()
 
         // keeps language resources for only the locales specified below

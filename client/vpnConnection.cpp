@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QHostInfo>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QObject>
 #include <QSharedPointer>
 #include <QString>
@@ -43,6 +44,14 @@ VpnConnection::VpnConnection(SecureServersRepository* serversRepository, SecureA
       m_checkTimer(this),
       m_connectionState(Vpn::ConnectionState::Disconnected)
 {
+#ifdef AMNEZIA_DESKTOP_SPA
+    m_spaRenewal.setSingleShot(true);
+    connect(&m_spaRenewal, &QTimer::timeout, this, [this] {
+        m_spa.request(m_spaHost, m_spaPort, m_spaKey, [this](bool confirmed) {
+            m_spaRenewal.start(confirmed ? 40000 : 3000);
+        });
+    });
+#endif
 #if defined(Q_OS_IOS) || defined(MACOS_NE)
     m_checkTimer.setInterval(1000);
     connect(IosController::Instance(), &IosController::connectionStateChanged, this, &VpnConnection::setConnectionState);
@@ -323,6 +332,9 @@ Vpn::ConnectionState VpnConnection::connectionState() const
 
 void VpnConnection::connectToVpn(const QString &serverId, DockerContainer container, const QJsonObject &vpnConfiguration)
 {
+#ifdef AMNEZIA_DESKTOP_SPA
+    stopSpa();
+#endif
     if (!m_appSettingsRepository || !m_serversRepository) {
         qCritical() << "VpnConnection::connectToVpn: repositories not initialized";
         setConnectionState(Vpn::ConnectionState::Error);
@@ -336,7 +348,51 @@ void VpnConnection::connectToVpn(const QString &serverId, DockerContainer contai
 
     m_remoteAddress = NetworkUtilities::getIPAddress(vpnConfiguration.value(configKey::hostName).toString());
     setConnectionState(Vpn::ConnectionState::Connecting);
+#ifndef Q_OS_ANDROID
+    if (ContainerUtils::isAwgContainer(container)) {
+        const auto dataKey = key_proto_config_data(Proto::Awg);
+        auto data = vpnConfiguration.value(dataKey).toObject();
+        const auto spaValue = data.take(configKey::coldwireSpa);
+        if (!spaValue.isUndefined()) {
+#ifdef AMNEZIA_DESKTOP_SPA
+            const auto spa = spaValue.toObject();
+            const int port = spa.value("port").toInt();
+            const auto key = spa.value("key").toString();
+            const QHostAddress host(data.value(configKey::hostName).toString());
+            static const QRegularExpression validKey(QStringLiteral("\\A[0-9a-fA-F]{64}\\z"));
+            if (spa.value("version").toInt() != 1 || !validKey.match(key).hasMatch() || port < 1 || port > 65535
+                || host.protocol() != QAbstractSocket::IPv4Protocol || port == data.value(configKey::port).toInt()) {
+                setConnectionState(Vpn::ConnectionState::Error);
+                emit vpnProtocolError(ErrorCode::ImportInvalidConfigError);
+                return;
+            }
+            auto cleanConfig = vpnConfiguration;
+            cleanConfig.insert(dataKey, data);
+            m_spaHost = host;
+            m_spaPort = static_cast<quint16>(port);
+            m_spaKey = QByteArray::fromHex(key.toLatin1());
+            m_spa.request(m_spaHost, m_spaPort, m_spaKey, [this, container, cleanConfig](bool confirmed) {
+                if (!confirmed) {
+                    setConnectionState(Vpn::ConnectionState::Error);
+                    emit vpnProtocolError(ErrorCode::ServerCheckFailed);
+                    return;
+                }
+                m_spaRenewal.start(40000);
+                startVpn(container, cleanConfig);
+            });
+#else
+            setConnectionState(Vpn::ConnectionState::Error);
+            emit vpnProtocolError(ErrorCode::NotImplementedError);
+#endif
+            return;
+        }
+    }
+#endif
+    startVpn(container, vpnConfiguration);
+}
 
+void VpnConnection::startVpn(DockerContainer container, const QJsonObject &vpnConfiguration)
+{
     m_vpnConfiguration = vpnConfiguration;
 
 #ifdef AMNEZIA_DESKTOP
@@ -565,6 +621,11 @@ void VpnConnection::reconnectToVpn() {
     }
 
     qDebug() << "Reconnect triggered. Reconnecting to the server";
+#ifdef AMNEZIA_DESKTOP_SPA
+    if (!m_spaKey.isEmpty()) {
+        m_spaRenewal.start(0);
+    }
+#endif
 
     setConnectionState(Vpn::ConnectionState::Reconnecting);
 
@@ -577,6 +638,9 @@ void VpnConnection::reconnectToVpn() {
 
 void VpnConnection::disconnectFromVpn()
 {
+#ifdef AMNEZIA_DESKTOP_SPA
+    stopSpa();
+#endif
 #if defined(Q_OS_IOS) || defined(MACOS_NE)
     // iOS/macOS NE use IosController directly; m_vpnProtocol is not set there.
     IosController::Instance()->disconnectVpn();
@@ -617,6 +681,20 @@ void VpnConnection::setConnectionState(Vpn::ConnectionState state) {
     if (state == Vpn::Disconnected && m_connectionState == Vpn::Reconnecting)
         return;
 
+#ifdef AMNEZIA_DESKTOP_SPA
+    if (state == Vpn::Disconnected || state == Vpn::ConnectionState::Error) {
+        stopSpa();
+    }
+#endif
     m_connectionState = state;
     emit connectionStateChanged(state);
 }
+
+#ifdef AMNEZIA_DESKTOP_SPA
+void VpnConnection::stopSpa()
+{
+    m_spa.cancel();
+    m_spaRenewal.stop();
+    m_spaKey.clear();
+}
+#endif

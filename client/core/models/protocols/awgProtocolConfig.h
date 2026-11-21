@@ -61,6 +61,7 @@ struct AwgServerConfig {
 
 struct AwgClientConfig {
     QString nativeConfig;
+    QJsonValue coldwireSpa = QJsonValue::Undefined;
     QString hostName;
     int port;
     QString cascadeEndpoint;

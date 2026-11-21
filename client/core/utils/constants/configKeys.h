@@ -15,6 +15,7 @@ namespace amnezia
         constexpr QLatin1String localPort("local_port");
         constexpr QLatin1String cascadeEndpoint("cascade_endpoint");
         constexpr QLatin1String cascadePort("cascade_port");
+        constexpr QLatin1String coldwireSpa("coldwireSpa");
 
         constexpr QLatin1String dns1("dns1");
         constexpr QLatin1String dns2("dns2");

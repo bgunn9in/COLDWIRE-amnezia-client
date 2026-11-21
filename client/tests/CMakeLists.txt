@@ -465,6 +465,10 @@ if(NOT ANDROID)
     add_subdirectory(api)
 endif()
 
+if(WIN32)
+    add_subdirectory(spa)
+endif()
+
 enable_testing()
 
 if(NOT ANDROID)

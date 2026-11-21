@@ -216,6 +216,9 @@ AwgServerConfig AwgServerConfig::fromJson(const QJsonObject& json)
 QJsonObject AwgClientConfig::toJson() const
 {
     QJsonObject obj;
+    if (!coldwireSpa.isUndefined()) {
+        obj[configKey::coldwireSpa] = coldwireSpa;
+    }
     
     if (!nativeConfig.isEmpty()) {
         obj[configKey::config] = nativeConfig;
@@ -358,6 +361,7 @@ void AwgClientConfig::setCascade(const QString &newEndpoint, const QString &newP
 AwgClientConfig AwgClientConfig::fromJson(const QJsonObject& json)
 {
     AwgClientConfig config;
+    config.coldwireSpa = json.value(configKey::coldwireSpa);
     
     config.nativeConfig = json.value(configKey::config).toString();
     config.hostName = json.value(configKey::hostName).toString();

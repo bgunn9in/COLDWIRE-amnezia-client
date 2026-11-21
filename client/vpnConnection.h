@@ -12,6 +12,7 @@
 #include "core/utils/errorCodes.h"
 #include "core/utils/routeModes.h"
 #include "core/utils/commonStructs.h"
+#include "core/utils/spaAdmission.h"
 #include "core/repositories/secureServersRepository.h"
 #include "core/repositories/secureAppSettingsRepository.h"
 
@@ -79,6 +80,15 @@ private:
     QJsonObject m_vpnConfiguration;
     QJsonObject m_routeMode;
     QString m_remoteAddress;
+#ifdef AMNEZIA_DESKTOP_SPA
+    SpaAdmission m_spa;
+    QTimer m_spaRenewal;
+    QHostAddress m_spaHost;
+    quint16 m_spaPort = 0;
+    QByteArray m_spaKey;
+    void stopSpa();
+#endif
+    void startVpn(DockerContainer container, const QJsonObject &vpnConfiguration);
 
     // Only for iOS for now, check counters
     QTimer m_checkTimer;
