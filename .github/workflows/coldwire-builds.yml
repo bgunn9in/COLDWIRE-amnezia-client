@@ -10,6 +10,10 @@ on:
         description: Successful COLDWIRE build run to publish
         type: string
         required: false
+      windows_only:
+        description: Build a Windows MSI for manual verification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,7 +24,7 @@ concurrency:
 
 jobs:
   macos:
-    if: ${{ !inputs.existing_run }}
+    if: ${{ !inputs.existing_run && !inputs.windows_only }}
     runs-on: macos-26
     timeout-minutes: 90
     steps:
@@ -68,7 +72,7 @@ jobs:
           retention-days: 7
 
   android:
-    if: ${{ !inputs.existing_run }}
+    if: ${{ !inputs.existing_run && !inputs.windows_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -203,6 +207,11 @@ jobs:
           wix extension add -g WixToolset.Util.wixext/4.0.6
           cmake -S . -B win-build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build win-build --parallel
+          $app = [IO.File]::ReadAllBytes((Resolve-Path 'win-build/client/AmneziaVPN.exe').Path)
+          $peHeader = [BitConverter]::ToInt32($app, 0x3c)
+          if ([BitConverter]::ToUInt16($app, $peHeader + 24 + 68) -ne 2) {
+            throw 'AmneziaVPN.exe must use the Windows GUI subsystem'
+          }
           cpack -G WIX --config win-build/CPackConfig.cmake -B artifacts
 
       - uses: actions/upload-artifact@v4
@@ -215,7 +224,7 @@ jobs:
   release:
     needs: [windows, macos, android]
     if: >-
-      ${{ !cancelled() && github.ref == 'refs/heads/feature/spa-admission' &&
+      ${{ !cancelled() && !inputs.windows_only && github.ref == 'refs/heads/feature/spa-admission' &&
           (inputs.existing_run || (needs.windows.result == 'success' &&
           needs.macos.result == 'success' && needs.android.result == 'success')) }}
     runs-on: ubuntu-24.04
