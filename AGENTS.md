@@ -120,7 +120,7 @@ These three come first. Each one has been asked for repeatedly.
   do not commit or push unless asked. Commit messages use a conventional prefix
   with a scope (`fix(ui): …`, `feat(macos): …`, `chore: …`): a one-line
   subject plus one or two short body lines saying what was wrong and what
-  changed. Pull requests target `dev`.
+  changed. Pull requests to this fork target `feature/spa-admission`.
 - **Format C++ with `.clang-format`.** Format the lines you touch; do not
   reformat files the change does not otherwise touch.
 - **Delete unused code** instead of keeping it "for later".
