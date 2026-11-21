@@ -1,33 +1,14 @@
-# Amnezia VPN
+# COLDWIRE Amnezia VPN
 
-### _The best client for self-hosted VPN_
+[Русский](README_RU.md)
 
+COLDWIRE is an [AmneziaVPN fork](https://github.com/amnezia-vpn/amnezia-client) that adds single-packet authorization (SPA) before connecting to an AmneziaWG relay. Import a COLDWIRE profile with an SPA key to use it with a [COLDWIRE relay](https://github.com/bgunn9in/coldwire).
 
-[![Build Status](https://github.com/amnezia-vpn/amnezia-client/actions/workflows/deploy.yml/badge.svg?branch=dev)](https://github.com/amnezia-vpn/amnezia-client/actions/workflows/deploy.yml?query=branch:dev)
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/amnezia-vpn/amnezia-client)
+[Download the latest release](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest) for Windows x64, macOS (Intel and Apple Silicon), or Android 9/10 ARM64. The Windows and macOS installers are unsigned. Android releases use the same COLDWIRE signing key. An older test APK signed with a temporary CI key requires a fresh install.
 
-### [English]([https://github.com/amnezia-vpn/amnezia-client/blob/dev/README_RU.md](https://github.com/amnezia-vpn/amnezia-client/tree/dev?tab=readme-ov-file#)) | [Русский](https://github.com/amnezia-vpn/amnezia-client/blob/dev/README_RU.md)
+GitHub Actions builds the three installers on pushes that change the code or build configuration on feature/spa-admission. Each release links to its source commit, build logs and SHA-256 checksums.
 
-
-[Amnezia](https://amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-en) is an open-source VPN client, with a key feature that enables you to deploy your own VPN server on your server.
-
-[![Image](https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/uipic4.png)](https://amnezia.org)
-
-### [Website](https://amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-en) | [Alt website link](https://storage.googleapis.com/amnezia/amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-en-mirror) | [Documentation](https://docs.amnezia.org) | [Troubleshooting](https://docs.amnezia.org/troubleshooting)
-
-> [!TIP]
-> If the [Amnezia website](https://amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-en) is blocked in your region, you can use an [Alternative website link](https://storage.googleapis.com/amnezia/amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-en-mirror).
-
-<a href="https://amnezia.org/en/downloads?utm_source=github&utm_campaign=amnezia_button-readme-en"><img src="https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/download-website.svg" width="150" style="max-width: 100%; margin-right: 10px"></a>
-<a href="https://storage.googleapis.com/amnezia/amnezia.org?m-path=/en/downloads&utm_source=github&utm_campaign=amnezia_button-readme-en-mirrow"><img src="https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/download-alt.svg" width="150" style="max-width: 100%;"></a>
-
-[All releases](https://github.com/amnezia-vpn/amnezia-client/releases)
-
-<br/>
-
-<a href="https://www.testiny.io"><img src="https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/testiny.png" height="28px"></a>
-
-## Features
+## AmneziaVPN features
 
 - Very easy to use - enter your IP address, SSH login, password and Amnezia will automatically install VPN docker containers to your server and connect to the VPN.
 - Classic VPN-protocols: OpenVPN, WireGuard and IKEv2 protocols.

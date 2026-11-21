@@ -1,18 +1,26 @@
-name: COLDWIRE client test builds
+name: COLDWIRE builds and releases
 
 on:
   push:
     branches: [feature/spa-admission]
+    paths-ignore: ['**/*.md']
+  workflow_dispatch:
+    inputs:
+      existing_run:
+        description: Successful COLDWIRE build run to publish
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: coldwire-builds-${{ github.ref }}-${{ contains(github.event.head_commit.message, '[macos-only]') && 'macos' || 'all' }}
-  cancel-in-progress: true
+  group: coldwire-builds-${{ inputs.existing_run || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   macos:
+    if: ${{ !inputs.existing_run }}
     runs-on: macos-26
     timeout-minutes: 90
     steps:
@@ -60,7 +68,7 @@ jobs:
           retention-days: 7
 
   android:
-    if: ${{ !contains(github.event.head_commit.message, '[macos-only]') }}
+    if: ${{ !inputs.existing_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -68,6 +76,7 @@ jobs:
       ANDROID_NDK_VERSION: 27.0.11718014
       APP_ANDROID_MIN_SDK: '28'
       APP_ANDROID_MAX_SDK: '29'
+      APP_ANDROID_VERSION_CODE_OFFSET: ${{ github.run_number }}
       ORG_GRADLE_PROJECT_coldwireTestApp: 'true'
     steps:
       - uses: actions/checkout@v4
@@ -108,22 +117,28 @@ jobs:
           aqtversion: '==3.3.0'
           set-env: false
 
-      - name: Build and verify the Android 9/10 test APK
+      - name: Build and verify the Android 9/10 APK
         env:
           QT_INSTALL_DIR: ${{ runner.temp }}
-          QT_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/coldwire-test.p12
-          QT_ANDROID_KEYSTORE_ALIAS: coldwire-test
-          QT_ANDROID_KEYSTORE_STORE_PASS: android
+          QT_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/coldwire-android.p12
+          QT_ANDROID_KEYSTORE_ALIAS: coldwire-android
+          QT_ANDROID_KEYSTORE_STORE_PASS: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE }}
         run: |
+          umask 077
           python -m pip install 'conan==2.28.0'
-          keytool -genkeypair -keystore "$QT_ANDROID_KEYSTORE_PATH" -storetype PKCS12 -storepass android -keypass android -alias coldwire-test -keyalg RSA -keysize 2048 -validity 3650 -dname 'CN=COLDWIRE CI Test'
+          test -n "$KEYSTORE_BASE64"
+          test -n "$QT_ANDROID_KEYSTORE_STORE_PASS"
+          trap 'rm -f -- "$QT_ANDROID_KEYSTORE_PATH"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$QT_ANDROID_KEYSTORE_PATH"
+          unset KEYSTORE_BASE64
           sed -i 's/-- %%INSERT_APP_NAME%% --/COLDWIRE/' client/android/AndroidManifest.xml
           deploy/build.sh -t android --abi arm64-v8a --sign
           apk_dir=deploy/build/client/android-build/build/outputs/apk/oss/release
           mapfile -t apks < <(find "$apk_dir" -maxdepth 1 -name '*.apk' -type f)
           test "${#apks[@]}" -eq 1
           tools="$ANDROID_HOME/build-tools/36.0.0"
-          "$tools/apksigner" verify "${apks[0]}"
+          "$tools/apksigner" verify --print-certs "${apks[0]}"
           "$tools/aapt" dump badging "${apks[0]}" > android-badging.txt
           grep -F "package: name='org.amnezia.vpn.coldwire'" android-badging.txt
           grep -F "sdkVersion:'28'" android-badging.txt
@@ -141,7 +156,7 @@ jobs:
           retention-days: 7
 
   windows:
-    if: ${{ !contains(github.event.head_commit.message, '[macos-only]') }}
+    if: ${{ !inputs.existing_run }}
     runs-on: windows-2022
     timeout-minutes: 120
     steps:
@@ -196,3 +211,114 @@ jobs:
           path: artifacts/*.msi
           if-no-files-found: error
           retention-days: 7
+
+  release:
+    needs: [windows, macos, android]
+    if: >-
+      ${{ !cancelled() && github.ref == 'refs/heads/feature/spa-admission' &&
+          (inputs.existing_run || (needs.windows.result == 'success' &&
+          needs.macos.result == 'success' && needs.android.result == 'success')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Resolve build artifacts
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.existing_run }}
+        run: |
+          run_id="$GITHUB_RUN_ID"
+          commit="$GITHUB_SHA"
+          if [[ -n "$SOURCE_RUN" ]]; then
+            [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+            workflow=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/coldwire-builds.yml" --jq .id)
+            commit=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" |
+              jq -er --argjson workflow "$workflow" '
+                select(.workflow_id == $workflow and .head_branch == "feature/spa-admission" and .conclusion == "success") | .head_sha')
+            status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$commit...$GITHUB_SHA" --jq .status)
+            [[ "$status" == ahead || "$status" == identical ]]
+            run_id="$SOURCE_RUN"
+          fi
+          printf 'run_id=%s\ncommit=%s\n' "$run_id" "$commit" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          pattern: 'coldwire-*'
+          path: installers
+
+      - uses: android-actions/setup-android@v4
+        if: inputs.existing_run
+        with:
+          packages: build-tools;36.0.0
+
+      - name: Sign the existing Android APK with the release key
+        if: inputs.existing_run
+        env:
+          KEYSTORE_BASE64: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          umask 077
+          shopt -s nullglob
+          apks=(installers/coldwire-android9-10-arm64-test/*.apk)
+          test "${#apks[@]}" -eq 1
+          keystore="$RUNNER_TEMP/coldwire-android.p12"
+          trap 'rm -f -- "$keystore"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"
+          unset KEYSTORE_BASE64
+          signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$signer" sign --ks "$keystore" --ks-key-alias coldwire-android \
+            --ks-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/coldwire.apk" "${apks[0]}"
+          "$signer" verify --print-certs "$RUNNER_TEMP/coldwire.apk"
+          mv "$RUNNER_TEMP/coldwire.apk" "${apks[0]}"
+
+      - name: Publish all three installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ steps.source.outputs.run_id }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+        run: |
+          shopt -s nullglob
+          msi=(installers/coldwire-windows-x64-unsigned/*.msi)
+          pkg=(installers/coldwire-macos-unsigned/*.pkg)
+          apk=(installers/coldwire-android9-10-arm64-test/*.apk)
+          test "${#msi[@]}:${#pkg[@]}:${#apk[@]}" = '1:1:1'
+          mkdir dist
+          mv "${msi[0]}" dist/COLDWIRE-Windows-x64.msi
+          mv "${pkg[0]}" dist/COLDWIRE-macOS.pkg
+          mv "${apk[0]}" dist/COLDWIRE-Android-9-10-arm64-v8a.apk
+          cd dist
+          files=(COLDWIRE-Windows-x64.msi COLDWIRE-macOS.pkg COLDWIRE-Android-9-10-arm64-v8a.apk)
+          for file in "${files[@]}"; do test -s "$file"; done
+          sha256sum "${files[@]}" > SHA256SUMS.txt
+
+          tag="coldwire-spa-${SOURCE_COMMIT:0:12}"
+          latest=true
+          if [[ "$SOURCE_RUN" != "$GITHUB_RUN_ID" ]] && gh release view -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            latest=false
+          fi
+          if release=$(gh release view "$tag" -R "$GITHUB_REPOSITORY" --json isDraft,targetCommitish); then
+            test "$(jq -r .targetCommitish <<< "$release")" = "$SOURCE_COMMIT"
+            if [[ $(jq -r .isDraft <<< "$release") == false ]]; then
+              gh release view "$tag" -R "$GITHUB_REPOSITORY" --json url --jq .url
+              exit 0
+            fi
+          else
+            cat > notes.md <<EOF
+          Installers for testing SPA admission with AmneziaWG on Windows x64, macOS (Intel and Apple Silicon), and Android 9/10 ARM64.
+
+          The MSI and PKG are unsigned. The Android APK uses the COLDWIRE release key. Older CI APKs used a different key and need a fresh install.
+
+          Source commit: \`$SOURCE_COMMIT\`
+
+          [Build and verification logs](https://github.com/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN)
+          EOF
+            gh release create "$tag" -R "$GITHUB_REPOSITORY" --target "$SOURCE_COMMIT" \
+              --draft --title "COLDWIRE SPA ${SOURCE_COMMIT:0:12}" --notes-file notes.md
+          fi
+          gh release upload "$tag" "${files[@]}" SHA256SUMS.txt -R "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$tag" -R "$GITHUB_REPOSITORY" --draft=false --latest="$latest"

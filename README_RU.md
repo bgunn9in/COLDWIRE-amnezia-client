@@ -1,30 +1,14 @@
-# Amnezia VPN
+# COLDWIRE Amnezia VPN
 
-### _Лучший клиент для создания VPN на собственном сервере_
+[English](README.md)
 
-[![Build Status](https://github.com/amnezia-vpn/amnezia-client/actions/workflows/deploy.yml/badge.svg?branch=dev)](https://github.com/amnezia-vpn/amnezia-client/actions/workflows/deploy.yml?query=branch:dev)
-[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/amnezia-vpn/amnezia-client)
+В этом [форке AmneziaVPN](https://github.com/amnezia-vpn/amnezia-client) клиент получает допуск SPA перед подключением к реле AmneziaWG. Для [реле COLDWIRE](https://github.com/bgunn9in/coldwire) импортируйте профиль с ключом SPA.
 
-### [English](https://github.com/amnezia-vpn/amnezia-client/blob/dev/README.md) | Русский
-[AmneziaVPN](https://amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-ru) — это open source VPN-клиент, ключевая особенность которого заключается в возможности развернуть собственный VPN на вашем сервере.
+[Скачайте последний выпуск](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest) для Windows x64, macOS (Intel и Apple Silicon) или Android 9/10 ARM64. Установщики Windows и macOS без подписи. APK подписываются постоянным ключом COLDWIRE. Если установлен старый тестовый APK с временной подписью CI, потребуется установка заново.
 
-[![Image](https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/uipic4.png)](https://amnezia.org)
+GitHub Actions собирает три установщика после изменений кода или конфигурации сборки в feature/spa-admission. В каждом выпуске есть ссылка на исходный коммит, журнал сборки и контрольные суммы SHA-256.
 
-### [Сайт](https://amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-ru) | [Зеркало сайта](https://storage.googleapis.com/amnezia/amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-ru-mirror) | [Документация](https://docs.amnezia.org) | [Решение проблем](https://docs.amnezia.org/troubleshooting)
-
-> [!TIP]
-> Если [сайт Amnezia](https://amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-ru) заблокирован в вашем регионе, вы можете воспользоваться [ссылкой на зеркало](https://storage.googleapis.com/amnezia/amnezia.org?utm_source=github&utm_campaign=amnezia_website-readme-ru-mirror).
-
-<a href="https://storage.googleapis.com/amnezia/amnezia.org?m-path=/ru/downloads&utm_source=github&utm_campaign=amnezia_button-readme-ru-mirror"><img src="https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/download-website-ru.svg" width="150" style="max-width: 100%; margin-right: 10px"></a>
-
-
-[Все релизы](https://github.com/amnezia-vpn/amnezia-client/releases)
-
-<br/>
-
-<a href="https://www.testiny.io"><img src="https://github.com/amnezia-vpn/amnezia-client/blob/dev/metadata/img-readme/testiny.png" height="28px"></a>
-
-## Особенности
+## Возможности AmneziaVPN
 
 - Простой в использовании — введите IP-адрес, SSH-логин и пароль, и Amnezia автоматически установит VPN-контейнеры Docker на ваш сервер и подключится к VPN.
 - Классические VPN-протоколы: OpenVPN, WireGuard и IKEv2.
