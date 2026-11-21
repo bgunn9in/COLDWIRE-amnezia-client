@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: coldwire-builds-${{ github.ref }}
+  group: coldwire-builds-${{ github.ref }}-${{ contains(github.event.head_commit.message, '[macos-only]') && 'macos' || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -60,6 +60,7 @@ jobs:
           retention-days: 7
 
   android:
+    if: ${{ !contains(github.event.head_commit.message, '[macos-only]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -140,6 +141,7 @@ jobs:
           retention-days: 7
 
   windows:
+    if: ${{ !contains(github.event.head_commit.message, '[macos-only]') }}
     runs-on: windows-2022
     timeout-minutes: 120
     steps:
