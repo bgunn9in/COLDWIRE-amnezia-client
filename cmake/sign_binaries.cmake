@@ -48,6 +48,7 @@ if(APPLE AND (CODESIGN_SIGNATURE OR CPACK_GENERATOR STREQUAL "productbuild"))
     endforeach()
 
     file(GLOB_RECURSE execs "${programs}/*")
+    list(REMOVE_ITEM execs "${programs}/AmneziaVPN")
     set(files)
     foreach(file IN LISTS dylibs execs)
         if(NOT IS_SYMLINK "${file}")
