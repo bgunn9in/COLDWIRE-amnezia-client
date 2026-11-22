@@ -8,10 +8,14 @@ function(codesign_sign_files files signature keychain)
     set(args
         --force
         --verbose
-        --timestamp
-        --options runtime
         --sign "${signature}"
     )
+
+    if(signature STREQUAL "-")
+        list(APPEND args --timestamp=none)
+    else()
+        list(APPEND args --timestamp --options runtime)
+    endif()
 
     if(keychain)
         list(APPEND args --keychain "${keychain}")

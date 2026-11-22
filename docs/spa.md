@@ -12,7 +12,7 @@ Download the installer and `SHA256SUMS.txt` from the same [release](https://gith
 | macOS on Intel or Apple Silicon | `COLDWIRE-macOS.pkg` |
 | Android 9 or 10, ARM64 | `COLDWIRE-Android-9-10-arm64-v8a.apk` |
 
-Run the MSI on Windows or open the PKG on macOS. Both installers are unsigned. If macOS blocks the PKG, verify the downloaded file before following Apple’s instructions. [Apple’s Gatekeeper guide](https://support.apple.com/en-us/102445)
+Run the MSI on Windows or open the PKG on macOS. Both installers are unsigned. COLDWIRE signs the app inside the PKG ad hoc. If macOS blocks the PKG, verify the downloaded file before following Apple’s instructions. [Apple’s Gatekeeper guide](https://support.apple.com/en-us/102445)
 
 On Android, open the APK and allow your file manager or browser to install it when prompted. The APK uses the COLDWIRE signing key and the package name `org.amnezia.vpn.coldwire`. If Android rejects an update from an early test APK because of a signature mismatch, save the profile before uninstalling that test build.
 

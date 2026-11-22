@@ -12,7 +12,7 @@
 | macOS на Intel или Apple Silicon | `COLDWIRE-macOS.pkg` |
 | Android 9 или 10, ARM64 | `COLDWIRE-Android-9-10-arm64-v8a.apk` |
 
-Запустите MSI в Windows или откройте PKG в macOS. Оба установщика выпускаются без подписи. Если macOS блокирует установку, сначала сверьте контрольную сумму файла. [Инструкция Apple по Gatekeeper](https://support.apple.com/ru-ru/102445)
+Запустите MSI в Windows или откройте PKG в macOS. Оба установщика выпускаются без подписи. Само приложение в PKG подписано ad hoc. Если macOS блокирует установку, сначала сверьте контрольную сумму файла. [Инструкция Apple по Gatekeeper](https://support.apple.com/ru-ru/102445)
 
 На Android откройте APK. Если система попросит, разрешите браузеру или файловому менеджеру установить его. APK подписан ключом COLDWIRE и использует имя пакета `org.amnezia.vpn.coldwire`. Если Android не обновляет раннюю тестовую сборку из-за другой подписи, сохраните профиль перед её удалением.
 

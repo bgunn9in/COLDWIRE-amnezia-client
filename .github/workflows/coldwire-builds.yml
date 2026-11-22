@@ -64,6 +64,19 @@ jobs:
           python -m pip install 'conan==2.28.0'
           deploy/build.sh -t macos --generator Ninja --installer productbuild
 
+      - name: Verify signatures and start the packaged client
+        run: |
+          shopt -s nullglob
+          packages=(deploy/build/*.pkg)
+          test "${#packages[@]}" -eq 1
+          expanded="$RUNNER_TEMP/coldwire-package"
+          pkgutil --expand-full "${packages[0]}" "$expanded"
+          app=$(find "$expanded" -type d -name AmneziaVPN.app -print -quit)
+          test -n "$app"
+          codesign --verify --deep --strict --all-architectures --verbose=2 "$app"
+          codesign --verify --strict --all-architectures "$app/Contents/PlugIns/platforms/libqcocoa.dylib"
+          QT_QPA_PLATFORM=cocoa "$app/Contents/MacOS/AmneziaVPN" --version
+
       - uses: actions/upload-artifact@v4
         with:
           name: coldwire-macos-unsigned
