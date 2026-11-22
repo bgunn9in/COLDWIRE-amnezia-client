@@ -112,16 +112,12 @@ bool WindowsServiceManager::startService() {
     return true;
   }
 
-  bool ok = StartService(m_service,  // handle to service
-                         0,          // number of arguments
-                         NULL);      // no arguments
-  if (ok) {
-    logger.debug() << ("Service start requested");
-    startPolling(SERVICE_RUNNING, 30);
-  } else {
+  if (!StartService(m_service, 0, nullptr)) {
     WindowsUtils::windowsLog("StartService failed");
+    return false;
   }
-  return ok;
+  logger.debug() << ("Service start requested");
+  return startPolling(SERVICE_RUNNING, 30);
 }
 
 bool WindowsServiceManager::stopService() {
@@ -130,12 +126,11 @@ bool WindowsServiceManager::stopService() {
     logger.warning() << ("Service stop not possible, as its not running");
   }
 
-  bool ok = ControlService(m_service, SERVICE_CONTROL_STOP, NULL);
-  if (ok) {
-    logger.debug() << ("Service stop requested");
-    startPolling(SERVICE_STOPPED, 10);
-  } else {
+  SERVICE_STATUS status{};
+  if (!ControlService(m_service, SERVICE_CONTROL_STOP, &status)) {
     WindowsUtils::windowsLog("StopService failed");
+    return false;
   }
-  return ok;
+  logger.debug() << ("Service stop requested");
+  return startPolling(SERVICE_STOPPED, 10);
 }

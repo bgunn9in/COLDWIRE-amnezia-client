@@ -32,6 +32,7 @@ class WindowsDaemon final : public Daemon {
   DnsUtils* dnsutils() override { return m_dnsutils; }
 
  private:
+  bool configureSplitTunnel(const QStringList& disabledApps, int vpnAdapterIndex);
   void monitorBackendFailure();
 
  private:
