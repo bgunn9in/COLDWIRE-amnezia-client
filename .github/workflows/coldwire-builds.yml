@@ -89,14 +89,27 @@ jobs:
           retention-days: 7
 
   android:
+    name: Android ${{ matrix.version }} ARM64
     if: ${{ !inputs.existing_run && !inputs.windows_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '9/10'
+            min_sdk: '28'
+            max_sdk: '29'
+            artifact: coldwire-android9-10-arm64-test
+          - version: '11+'
+            min_sdk: '30'
+            max_sdk: ''
+            artifact: coldwire-android11-plus-arm64
     env:
-      ANDROID_PLATFORM: android-28
+      ANDROID_PLATFORM: android-${{ matrix.min_sdk }}
       ANDROID_NDK_VERSION: 27.0.11718014
-      APP_ANDROID_MIN_SDK: '28'
-      APP_ANDROID_MAX_SDK: '29'
+      APP_ANDROID_MIN_SDK: ${{ matrix.min_sdk }}
+      APP_ANDROID_MAX_SDK: ${{ matrix.max_sdk }}
       APP_ANDROID_VERSION_CODE_OFFSET: ${{ github.run_number }}
       ORG_GRADLE_PROJECT_coldwireTestApp: 'true'
     steps:
@@ -115,7 +128,7 @@ jobs:
 
       - uses: android-actions/setup-android@v4
         with:
-          packages: platform-tools platforms;android-28 platforms;android-36 build-tools;36.0.0 ndk;27.0.11718014
+          packages: platform-tools platforms;android-${{ matrix.min_sdk }} platforms;android-36 build-tools;36.0.0 ndk;27.0.11718014
 
       - uses: jurplel/install-qt-action@v4.3.1
         with:
@@ -138,7 +151,7 @@ jobs:
           aqtversion: '==3.3.0'
           set-env: false
 
-      - name: Build and verify the Android 9/10 APK
+      - name: Build and verify the Android APK
         env:
           QT_INSTALL_DIR: ${{ runner.temp }}
           QT_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/coldwire-android.p12
@@ -162,16 +175,23 @@ jobs:
           "$tools/apksigner" verify --print-certs "${apks[0]}"
           "$tools/aapt" dump badging "${apks[0]}" > android-badging.txt
           grep -F "package: name='org.amnezia.vpn.coldwire'" android-badging.txt
-          grep -F "sdkVersion:'28'" android-badging.txt
-          grep -F "native-code: 'arm64-v8a'" android-badging.txt
+          grep -Fx "sdkVersion:'$APP_ANDROID_MIN_SDK'" android-badging.txt
+          grep -Fx "targetSdkVersion:'36'" android-badging.txt
+          grep -Fx "native-code: 'arm64-v8a'" android-badging.txt
           "$tools/aapt" dump xmltree "${apks[0]}" AndroidManifest.xml > android-manifest.txt
-          grep -E 'android:maxSdkVersion.*0x1d' android-manifest.txt
+          max_sdk=$(sed -n '/E: uses-sdk/,/E: /{/android:maxSdkVersion/p;}' android-manifest.txt)
+          if [[ -n "$APP_ANDROID_MAX_SDK" ]]; then
+            expected=$(printf '%x' "$APP_ANDROID_MAX_SDK")
+            grep -E "0x$expected[[:space:]]*$" <<< "$max_sdk"
+          else
+            test -z "$max_sdk"
+          fi
           mkdir -p artifacts
-          cp "${apks[0]}" artifacts/COLDWIRE_5.1.1.10_android9-10_arm64-v8a_test.apk
+          cp "${apks[0]}" artifacts/COLDWIRE-arm64-v8a.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: coldwire-android9-10-arm64-test
+          name: ${{ matrix.artifact }}
           path: artifacts/*.apk
           if-no-files-found: error
           retention-days: 7
@@ -282,7 +302,7 @@ jobs:
         with:
           packages: build-tools;36.0.0
 
-      - name: Sign the existing Android APK with the release key
+      - name: Sign the existing Android APKs with the release key
         if: inputs.existing_run
         env:
           KEYSTORE_BASE64: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE }}
@@ -290,19 +310,21 @@ jobs:
         run: |
           umask 077
           shopt -s nullglob
-          apks=(installers/coldwire-android9-10-arm64-test/*.apk)
-          test "${#apks[@]}" -eq 1
+          apks=(installers/coldwire-android9-10-arm64-test/*.apk installers/coldwire-android11-plus-arm64/*.apk)
+          test "${#apks[@]}" -ge 1
           keystore="$RUNNER_TEMP/coldwire-android.p12"
           trap 'rm -f -- "$keystore"' EXIT
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"
           unset KEYSTORE_BASE64
           signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-          "$signer" sign --ks "$keystore" --ks-key-alias coldwire-android \
-            --ks-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/coldwire.apk" "${apks[0]}"
-          "$signer" verify --print-certs "$RUNNER_TEMP/coldwire.apk"
-          mv "$RUNNER_TEMP/coldwire.apk" "${apks[0]}"
+          for apk in "${apks[@]}"; do
+            "$signer" sign --ks "$keystore" --ks-key-alias coldwire-android \
+              --ks-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/coldwire.apk" "$apk"
+            "$signer" verify --print-certs "$RUNNER_TEMP/coldwire.apk"
+            mv "$RUNNER_TEMP/coldwire.apk" "$apk"
+          done
 
-      - name: Publish all three installers
+      - name: Publish installers
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ steps.source.outputs.run_id }}
@@ -312,13 +334,25 @@ jobs:
           msi=(installers/coldwire-windows-x64-unsigned/*.msi)
           pkg=(installers/coldwire-macos-unsigned/*.pkg)
           apk=(installers/coldwire-android9-10-arm64-test/*.apk)
+          modern_apk=(installers/coldwire-android11-plus-arm64/*.apk)
           test "${#msi[@]}:${#pkg[@]}:${#apk[@]}" = '1:1:1'
+          if [[ "$SOURCE_RUN" == "$GITHUB_RUN_ID" ]]; then
+            test "${#modern_apk[@]}" -eq 1
+          else
+            test "${#modern_apk[@]}" -le 1
+          fi
           mkdir dist
           mv "${msi[0]}" dist/COLDWIRE-Windows-x64.msi
           mv "${pkg[0]}" dist/COLDWIRE-macOS.pkg
           mv "${apk[0]}" dist/COLDWIRE-Android-9-10-arm64-v8a.apk
           cd dist
           files=(COLDWIRE-Windows-x64.msi COLDWIRE-macOS.pkg COLDWIRE-Android-9-10-arm64-v8a.apk)
+          android_versions='9/10'
+          if (( ${#modern_apk[@]} )); then
+            mv "../${modern_apk[0]}" COLDWIRE-Android-11-plus-arm64-v8a.apk
+            files+=(COLDWIRE-Android-11-plus-arm64-v8a.apk)
+            android_versions='9/10 and 11+'
+          fi
           for file in "${files[@]}"; do test -s "$file"; done
           sha256sum "${files[@]}" > SHA256SUMS.txt
 
@@ -335,9 +369,9 @@ jobs:
             fi
           else
             cat > notes.md <<EOF
-          Installers for testing SPA admission with AmneziaWG on Windows x64, macOS (Intel and Apple Silicon), and Android 9/10 ARM64.
+          Installers for testing SPA admission with AmneziaWG on Windows x64, macOS (Intel and Apple Silicon), and Android $android_versions on ARM64.
 
-          The MSI and PKG are unsigned. The Android APK uses the COLDWIRE release key. Older CI APKs used a different key and need a fresh install.
+          The MSI and PKG are unsigned. The Android APKs use the COLDWIRE release key. Older CI APKs used a different key and need a fresh install.
 
           Source commit: \`$SOURCE_COMMIT\`
 

@@ -4,7 +4,7 @@
 
 COLDWIRE Amnezia VPN is an AmneziaVPN fork that opens a COLDWIRE relay with SPA before connecting over AmneziaWG 3.1. Use a `.vpn` profile issued or converted by the relay administrator.
 
-- [Download the client](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest) for Windows x64, macOS (Intel and Apple Silicon), or Android 9/10 ARM64.
+- [Download the client](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest) for Windows x64, macOS (Intel and Apple Silicon), or Android ARM64. Pick the APK for Android 9/10 or 11 and later.
 - [Install the app and connect](docs/spa.md).
 - [Set up a relay or manage devices](https://github.com/bgunn9in/coldwire).
 
