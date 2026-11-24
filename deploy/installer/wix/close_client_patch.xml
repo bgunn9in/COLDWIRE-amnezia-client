@@ -5,7 +5,7 @@
         <util:CloseApplication
                 Id="CloseAmneziaClient"
                 Target="AmneziaVPN.exe"
-                Description="Closing AmneziaVPN client"
+                Description="Closing COLDWIRE"
                 TerminateProcess="1"
                 RebootPrompt="no" />
     </CPackWiXFragment>

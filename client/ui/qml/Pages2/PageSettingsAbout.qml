@@ -19,7 +19,7 @@ PageType {
         target: UpdateController
 
         function onUpdateNotFound() {
-            PageController.showNotificationMessage(qsTr("You have the latest version of AmneziaVPN"))
+            PageController.showNotificationMessage(qsTr("No update found"))
         }
 
         function onUpdateCheckFailed() {
@@ -54,7 +54,7 @@ PageType {
                 Layout.preferredWidth: 153
                 Layout.preferredHeight: 131
 
-                source: "qrc:/images/amneziaLogo.svg"
+                source: "qrc:/images/coldwireLogo.png"
                 sourceSize: Qt.size(153 * Screen.devicePixelRatio, 131 * Screen.devicePixelRatio)
                 fillMode: Image.PreserveAspectFit
             }
@@ -66,7 +66,7 @@ PageType {
                 Layout.rightMargin: 16
 
                 horizontalAlignment: Text.AlignHCenter
-                text: qsTr("Support Amnezia")
+                text: Qt.application.displayName
             }
 
             BodyTextType {
@@ -77,7 +77,7 @@ PageType {
 
                 horizontalAlignment: Text.AlignHCenter
                 color: AmneziaStyle.color.textSecondary
-                text: qsTr("Amnezia is a free and open-source application. You can support the developers if you like it.")
+                text: qsTr("COLDWIRE is based on the open-source AmneziaVPN client.")
             }
 
             ColumnLayout {
@@ -143,7 +143,7 @@ PageType {
                             subtitle: qsTr("Discover the source code")
                             icon.source: "qrc:/images/controls/github.svg"
 
-                            onClicked: Qt.openUrlExternally(qsTr("https://github.com/amnezia-vpn/amnezia-client"))
+                            onClicked: Qt.openUrlExternally("https://github.com/bgunn9in/COLDWIRE-amnezia-client")
                         }
 
                         ListItemType {

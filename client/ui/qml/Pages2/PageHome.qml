@@ -98,99 +98,111 @@ PageType {
         }
     }
 
-    Item {
-        anchors.fill: parent
-        anchors.bottomMargin: collapsedBar.height
+    FlickableType {
+        anchors.top: parent.top
+        anchors.topMargin: PageController.safeAreaTopMargin
+
+        contentWidth: width
+        contentHeight: homeContent.implicitHeight
 
         ColumnLayout {
-            anchors.fill: parent
-            anchors.topMargin: PageController.safeAreaTopMargin
-            anchors.bottomMargin: 12
+            id: homeContent
 
-            spacing: 0
+            width: parent.width
+            spacing: 12
+
+            HomeBrandHeader {
+                Layout.fillWidth: true
+            }
 
             HomeInfoButton {
-                id: loggingButton
-
-                property bool isLoggingEnabled: SettingsController.isLoggingEnabled
-
                 Layout.alignment: Qt.AlignHCenter
-
-                visible: isLoggingEnabled ? true : false
+                visible: SettingsController.isLoggingEnabled
                 largeText: true
                 text: qsTr("Logging enabled")
 
-                onClicked: {
-                    PageController.goToPage(PageEnum.PageSettingsLogging)
-                }
+                onClicked: PageController.goToPage(PageEnum.PageSettingsLogging)
             }
 
             HomeInfoButton {
-                id: devGatewayButton
-
-                property bool isDevGatewayEnabled: SettingsController.isDevGatewayEnv
-
                 Layout.alignment: Qt.AlignHCenter
-
-                visible: SettingsController.isDevModeEnabled && isDevGatewayEnabled
+                visible: SettingsController.isDevModeEnabled && SettingsController.isDevGatewayEnv
                 largeText: true
                 text: qsTr("Dev gateway enabled")
 
-                onClicked: {
-                    PageController.goToPage(PageEnum.PageDevMenu)
-                }
+                onClicked: PageController.goToPage(PageEnum.PageDevMenu)
             }
 
-            Item {
-                id: connectButtonArea
-
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: 140
-                Layout.topMargin: 16
-                Layout.bottomMargin: 28
-
-                ConnectButton {
-                    id: connectButton
-
-                    anchors.centerIn: parent
-                    width: Math.min(implicitWidth, parent.width, parent.height)
-                    height: width
-                }
-            }
-
-            HomeInfoButton {
-                id: splitTunnelingButton
-
-                Layout.alignment: Qt.AlignHCenter
-                Layout.maximumWidth: parent.width - 32
-
-                property bool isSplitTunnelingEnabled: IpSplitTunnelingController.isSplitTunnelingEnabled || AppSplitTunnelingController.isSplitTunnelingEnabled ||
-                                                       ServersUiController.isDefaultServerDefaultContainerHasSplitTunneling
-
-                text: isSplitTunnelingEnabled ? qsTr("Split tunneling enabled") : qsTr("Split tunneling disabled")
-
-                leftImageSource: "qrc:/images/controls/split-tunneling.svg"
-                rightImageSource: "qrc:/images/controls/chevron-down.svg"
-
-                onClicked: {
-                    homeSplitTunnelingDrawer.open()
-                }
-
-                HomeSplitTunnelingDrawer {
-                    id: homeSplitTunnelingDrawer
-
-                    parent: root
-                }
-            }
-
-            PromoBanner {
-                id: promoBanner
-
+            ConnectButton {
                 Layout.fillWidth: true
                 Layout.leftMargin: 16
                 Layout.rightMargin: 16
-                Layout.topMargin: 12
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+                columns: root.width >= 532 ? 2 : 1
+                uniformCellWidths: true
+                columnSpacing: 10
+                rowSpacing: 8
+
+                HomeCard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    overline: qsTr("Profile")
+                    text: ServersUiController.defaultServerName
+                    subtitle: {
+                        const description = ServersUiController.defaultServerDescriptionCollapsed
+                        const entry = ServersUiController.defaultServerEntryHost
+                        if (entry && description.includes(" | ")) {
+                            return description.substring(0, description.lastIndexOf(" | ")) + "\n" + qsTr("Entry %1").arg(entry)
+                        }
+                        return description.replace(" | ", "\n")
+                    }
+                    trailingIconSource: "qrc:/images/controls/chevron-down.svg"
+
+                    onClicked: drawer.open()
+                }
+
+                HomeCard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    readonly property bool siteSplitEnabled: IpSplitTunnelingController.isSplitTunnelingEnabled
+                    readonly property bool directSites: siteSplitEnabled && IpSplitTunnelingController.routeMode === 2
+                    readonly property bool splitEnabled: siteSplitEnabled || AppSplitTunnelingController.isSplitTunnelingEnabled
+                                                         || ServersUiController.isDefaultServerDefaultContainerHasSplitTunneling
+
+                    overline: qsTranslate("HomeSplitTunnelingDrawer", "Split tunneling")
+                    text: siteSplitEnabled ? (directSites ? qsTranslate("PageSettingsSplitTunneling", "Directly")
+                                                          : qsTranslate("PageSettingsSplitTunneling", "Via VPN"))
+                                           : (splitEnabled ? qsTranslate("HomeSplitTunnelingDrawer", "Enabled")
+                                                           : qsTranslate("HomeSplitTunnelingDrawer", "Disabled"))
+                    subtitle: siteSplitEnabled ? qsTr("Listed sites") : ""
+                    titleColor: directSites ? AmneziaStyle.color.statusWarning : AmneziaStyle.color.textPrimary
+                    trailingIconSource: "qrc:/images/controls/chevron-right.svg"
+
+                    onClicked: homeSplitTunnelingDrawer.open()
+                }
+            }
+
+            NotificationType {
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+
+                visible: root.isOutdatedAwgWarningVisible
+                variant: NotificationType.Warning
+                text: qsTranslate("HomeServerSummary", "AmneziaWG 2.0 is outdated and no longer supported. Continued use requires a fresh installation of the AmneziaWG 3.1 container.")
+            }
+
+            PromoBanner {
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
 
                 visible: ServersUiController.isAdVisible
                 text: ServersUiController.adHeader
@@ -198,100 +210,21 @@ PageType {
 
                 onClicked: Qt.openUrlExternally(ServersUiController.serverAdEndpoint(ServersUiController.defaultServerId))
             }
+
+            Item {
+                Layout.preferredHeight: 8
+            }
         }
     }
 
-    Item {
-        id: collapsedBar
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-
-        height: drawer.contentTopOffset + collapsedSummary.height
-
-        Rectangle {
-            anchors.fill: parent
-            anchors.bottomMargin: -border.width
-
-            topLeftRadius: 16
-            topRightRadius: 16
-            color: drawer.defaultColor
-            border.color: drawer.borderColor
-            border.width: 1
-        }
-
-        SheetGrabberType {
-            anchors.top: parent.top
-            anchors.topMargin: 16
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-
-        MouseArea {
-            id: collapsedBarMouseArea
-
-            property real pressY: 0
-            property bool dragStarted: false
-
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            preventStealing: true
-
-            onPressed: function(mouse) {
-                pressY = mouse.y
-                dragStarted = false
-            }
-            onPositionChanged: function(mouse) {
-                if (!pressed) {
-                    return
-                }
-                if (!dragStarted && pressY - mouse.y > Application.styleHints.startDragDistance) {
-                    dragStarted = true
-                    drawer.beginDrag()
-                }
-                if (dragStarted) {
-                    drawer.dragTo(drawer.closedY + mouse.y - pressY)
-                }
-            }
-            onReleased: {
-                if (dragStarted) {
-                    drawer.endDrag()
-                }
-            }
-            onClicked: {
-                if (!dragStarted) {
-                    drawer.open()
-                }
-            }
-        }
-
-        HomeServerSummary {
-            id: collapsedSummary
-
-            anchors.top: parent.top
-            anchors.topMargin: drawer.contentTopOffset
-            anchors.left: parent.left
-            anchors.right: parent.right
-
-            expanded: false
-            pressed: collapsedBarMouseArea.pressed
-            outdatedWarningVisible: root.isOutdatedAwgWarningVisible
-            protocolSelectionVisible: root.isApiProtocolSelectionVisible
-            protocolSelectable: root.apiAvailableProtocols.length > 1
-            protocolText: root.protocolDisplayName(root.apiAvailableProtocols.length > 1 ? root.apiCurrentProtocol : root.apiAvailableProtocols[0])
-
-            onExpandRequested: drawer.open()
-            onServerInfoRequested: root.openServerInfo()
-            onProtocolSelectionRequested: root.openProtocolSelection()
-        }
+    HomeSplitTunnelingDrawer {
+        id: homeSplitTunnelingDrawer
     }
 
     SheetType {
         id: drawer
 
         bottomY: root.height
-        closedY: root.height - collapsedBar.height
         borderColor: AmneziaStyle.color.borderSoft
         grabberTopMargin: 16
         expandedHeight: Qt.platform.os !== "ios" ? root.height * 0.9 : screen.height * 0.77

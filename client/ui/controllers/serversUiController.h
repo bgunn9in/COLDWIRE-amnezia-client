@@ -23,6 +23,7 @@ class ServersUiController : public QObject
     Q_PROPERTY(QString defaultServerName READ getDefaultServerName NOTIFY defaultServerIdChanged)
     Q_PROPERTY(QString defaultServerDefaultContainerName READ getDefaultServerDefaultContainerName NOTIFY defaultServerIdChanged)
     Q_PROPERTY(QString defaultServerDescriptionCollapsed READ getDefaultServerDescriptionCollapsed NOTIFY defaultServerIdChanged)
+    Q_PROPERTY(QString defaultServerEntryHost READ getDefaultServerEntryHost NOTIFY defaultServerIdChanged)
     Q_PROPERTY(QString defaultServerImagePathCollapsed READ getDefaultServerImagePathCollapsed NOTIFY defaultServerIdChanged)
     Q_PROPERTY(QString defaultServerDescriptionExpanded READ getDefaultServerDescriptionExpanded NOTIFY defaultServerIdChanged)
     Q_PROPERTY(bool isDefaultServerDefaultContainerHasSplitTunneling READ isDefaultServerDefaultContainerHasSplitTunneling NOTIFY defaultServerIdChanged)
@@ -67,6 +68,7 @@ public slots:
     QString getDefaultServerName() const;
     QString getDefaultServerDefaultContainerName() const;
     QString getDefaultServerDescriptionCollapsed() const;
+    QString getDefaultServerEntryHost() const;
     QString getDefaultServerImagePathCollapsed() const;
     QString getDefaultServerDescriptionExpanded() const;
     bool isDefaultServerDefaultContainerHasSplitTunneling() const;

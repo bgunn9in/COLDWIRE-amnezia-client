@@ -32,7 +32,7 @@ PageType {
             width: 153
             height: 131
 
-            source: "qrc:/images/amneziaLogo.svg"
+            source: "qrc:/images/coldwireLogo.png"
             sourceSize: Qt.size(153 * Screen.devicePixelRatio, 131 * Screen.devicePixelRatio)
             fillMode: Image.PreserveAspectFit
         }

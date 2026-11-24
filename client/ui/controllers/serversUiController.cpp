@@ -203,6 +203,17 @@ QString ServersUiController::getDefaultServerDescriptionCollapsed() const
     return serverDescriptionById(getDefaultServerId()).collapsedServerDescription;
 }
 
+QString ServersUiController::getDefaultServerEntryHost() const
+{
+    const auto id = getDefaultServerId();
+    const auto container = m_serversController->getContainerConfig(id, m_serversController->getDefaultContainer(id));
+    const auto *awg = container.getAwgProtocolConfig();
+    if (awg && awg->clientConfig && awg->clientConfig->coldwireSpa.isObject()) {
+        return awg->clientConfig->hostName;
+    }
+    return {};
+}
+
 QString ServersUiController::getDefaultServerImagePathCollapsed() const
 {
     const auto &description = serverDescriptionById(getDefaultServerId());

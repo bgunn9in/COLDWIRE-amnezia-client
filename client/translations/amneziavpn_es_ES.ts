@@ -133,9 +133,8 @@
 <context>
     <name>ConnectButton</name>
     <message>
-        <location filename="../ui/qml/Components/ConnectButton.qml" line="28"/>
-        <source>Unable to disconnect during configuration preparation</source>
-        <translation>No se puede desconectar durante la preparación de la configuración</translation>
+        <source>Connection error</source>
+        <translation>Error de conexión</translation>
     </message>
 </context>
 <context>
@@ -787,8 +786,8 @@ Se han encontrado contenedores ya instalados en el servidor. Todos ellos se han 
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="57"/>
         <location filename="../ui/utils/notificationHandler.cpp" line="64"/>
-        <source>AmneziaVPN</source>
-        <translation>AmneziaVPN</translation>
+        <source>COLDWIRE</source>
+        <translation>COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="58"/>
@@ -802,8 +801,8 @@ Se han encontrado contenedores ya instalados en el servidor. Todos ellos se han 
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="88"/>
-        <source>AmneziaVPN notification</source>
-        <translation>Notificación de AmneziaVPN</translation>
+        <source>COLDWIRE notification</source>
+        <translation>Notificación de COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="89"/>
@@ -850,6 +849,18 @@ Se han encontrado contenedores ya instalados en el servidor. Todos ellos se han 
 <context>
     <name>PageHome</name>
     <message>
+        <source>Profile</source>
+        <translation>Perfil</translation>
+    </message>
+    <message>
+        <source>Listed sites</source>
+        <translation>Sitios de la lista</translation>
+    </message>
+    <message>
+        <source>Entry %1</source>
+        <translation>Entrada %1</translation>
+    </message>
+    <message>
         <location filename="../ui/qml/Pages2/PageHome.qml" line="121"/>
         <source>Logging enabled</source>
         <translation>Registro habilitado</translation>
@@ -858,16 +869,6 @@ Se han encontrado contenedores ya instalados en el servidor. Todos ellos se han 
         <location filename="../ui/qml/Pages2/PageHome.qml" line="137"/>
         <source>Dev gateway enabled</source>
         <translation>Dev gateway enabled</translation>
-    </message>
-    <message>
-        <location filename="../ui/qml/Pages2/PageHome.qml" line="171"/>
-        <source>Split tunneling enabled</source>
-        <translation>Túnel dividido habilitado</translation>
-    </message>
-    <message>
-        <location filename="../ui/qml/Pages2/PageHome.qml" line="171"/>
-        <source>Split tunneling disabled</source>
-        <translation>Túnel dividido deshabilitado</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageHome.qml" line="398"/>
@@ -3368,8 +3369,8 @@ Cree una a partir de los ajustes actuales.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettings.qml" line="126"/>
-        <source>About AmneziaVPN</source>
-        <translation>Sobre AmneziaVPN</translation>
+        <source>About COLDWIRE</source>
+        <translation>Sobre COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettings.qml" line="140"/>
@@ -3381,8 +3382,8 @@ Cree una a partir de los ajustes actuales.</translation>
     <name>PageSettingsAbout</name>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="22"/>
-        <source>You have the latest version of AmneziaVPN</source>
-        <translation>Tiene la última versión de AmneziaVPN</translation>
+        <source>No update found</source>
+        <translation>No se encontró ninguna actualización</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="26"/>
@@ -3390,14 +3391,9 @@ Cree una a partir de los ajustes actuales.</translation>
         <translation>No se pudieron buscar actualizaciones</translation>
     </message>
     <message>
-        <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="69"/>
-        <source>Support Amnezia</source>
-        <translation>Apoyar a Amnezia</translation>
-    </message>
-    <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="80"/>
-        <source>Amnezia is a free and open-source application. You can support the developers if you like it.</source>
-        <translation>Amnezia es una aplicación gratuita y de código abierto. Puede apoyar a los desarrolladores si le gusta.</translation>
+        <source>COLDWIRE is based on the open-source AmneziaVPN client.</source>
+        <translation>COLDWIRE se basa en el cliente de código abierto AmneziaVPN.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="101"/>
@@ -3478,11 +3474,6 @@ Cree una a partir de los ajustes actuales.</translation>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="143"/>
         <source>Discover the source code</source>
         <translation>Descubrir el código fuente</translation>
-    </message>
-    <message>
-        <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="146"/>
-        <source>https://github.com/amnezia-vpn/amnezia-client</source>
-        <translation>https://github.com/amnezia-vpn/amnezia-client</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="152"/>
@@ -3683,8 +3674,8 @@ Cree una a partir de los ajustes actuales.</translation>
     <name>PageSettingsApiNativeConfigs</name>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiNativeConfigs.qml" line="21"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>Guardar la configuración de AmneziaVPN</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>Guardar la configuración de COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiNativeConfigs.qml" line="186"/>
@@ -3984,8 +3975,8 @@ Cree una a partir de los ajustes actuales.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="111"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>Guardar la configuración de AmneziaVPN</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>Guardar la configuración de COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="112"/>
@@ -4224,8 +4215,8 @@ Cree una a partir de los ajustes actuales.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApplication.qml" line="274"/>
-        <source>All settings will be reset to default. All installed AmneziaVPN services will still remain on the server.</source>
-        <translation>Todos los ajustes se restablecerán a los valores predeterminados. Todos los servicios de AmneziaVPN instalados permanecerán en el servidor.</translation>
+        <source>All settings will be reset to default. Installed services will stay on the server.</source>
+        <translation>Todos los ajustes se restablecerán a los valores predeterminados. Todos los servicios de COLDWIRE instalados permanecerán en el servidor.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApplication.qml" line="275"/>
@@ -4262,8 +4253,8 @@ Cree una a partir de los ajustes actuales.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsBackup.qml" line="64"/>
-        <source>The backup will contain your passwords and private keys for all servers added to AmneziaVPN. Keep this information in a secure place.</source>
-        <translation>La copia de seguridad contendrá sus contraseñas y claves privadas de todos los servidores añadidos a AmneziaVPN. Mantenga esta información en un lugar seguro.</translation>
+        <source>The backup will contain your passwords and private keys for all servers added to COLDWIRE. Keep this information in a secure place.</source>
+        <translation>La copia de seguridad contendrá sus contraseñas y claves privadas de todos los servidores añadidos a COLDWIRE. Mantenga esta información en un lugar seguro.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsBackup.qml" line="87"/>
@@ -4968,8 +4959,8 @@ Solo uno puede estar activo a la vez: la VPN o el proxy local</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="177"/>
-        <source>All installed AmneziaVPN services will still remain on the server.</source>
-        <translation>Todos los servicios de AmneziaVPN instalados seguirán permaneciendo en el servidor.</translation>
+        <source>Installed services will stay on the server.</source>
+        <translation>Todos los servicios de COLDWIRE instalados seguirán permaneciendo en el servidor.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="183"/>
@@ -5498,8 +5489,8 @@ Solo uno puede estar activo a la vez: la VPN o el proxy local</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardConfigSource.qml" line="151"/>
-        <source>Configure Amnezia VPN on your own server</source>
-        <translation>Configure Amnezia VPN en su propio servidor</translation>
+        <source>Set up a VPN on your own server</source>
+        <translation>Configure COLDWIRE en su propio servidor</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardConfigSource.qml" line="168"/>
@@ -5880,8 +5871,8 @@ Solo uno puede estar activo a la vez: la VPN o el proxy local</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="51"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>Guardar la configuración de AmneziaVPN</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>Guardar la configuración de COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="58"/>
@@ -5915,8 +5906,8 @@ Solo uno puede estar activo a la vez: la VPN o el proxy local</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="102"/>
-        <source>For the AmneziaVPN app</source>
-        <translation>Para la aplicación AmneziaVPN</translation>
+        <source>For COLDWIRE</source>
+        <translation>Para la aplicación COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="103"/>
@@ -6078,8 +6069,8 @@ Solo uno puede estar activo a la vez: la VPN o el proxy local</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="30"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>Guardar la configuración de AmneziaVPN</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>Guardar la configuración de COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="125"/>
@@ -6880,14 +6871,14 @@ Solo uno puede estar activo a la vez: la VPN o el proxy local</translation>
         <source>OpenVPN is one of the most popular and reliable VPN protocols. It uses SSL/TLS encryption, supports a wide variety of devices and operating systems, and is continuously improved by the community due to its open-source nature. It provides a good balance between speed and security but is easily recognized by DPI systems, making it susceptible to blocking.
 
 Features:
-* Available on all AmneziaVPN platforms
+* Available on all COLDWIRE platforms
 * Normal battery consumption on mobile devices
 * Flexible customization for various devices and OS
 * Operates over both TCP and UDP protocols</source>
         <translation>OpenVPN es uno de los protocolos VPN más populares y fiables. Utiliza cifrado SSL/TLS, es compatible con una amplia variedad de dispositivos y sistemas operativos, y se mejora continuamente gracias a su naturaleza de código abierto. Ofrece un buen equilibrio entre velocidad y seguridad, pero es fácilmente reconocido por los sistemas DPI, lo que lo hace susceptible de bloqueo.
 
 Características:
-* Disponible en todas las plataformas de AmneziaVPN
+* Disponible en todas las plataformas de COLDWIRE
 * Consumo de batería normal en dispositivos móviles
 * Amplias opciones de personalización para distintos dispositivos y sistemas operativos
 * Funciona tanto sobre los protocolos TCP como UDP</translation>
@@ -6897,7 +6888,7 @@ Características:
         <source>WireGuard is a modern, streamlined VPN protocol offering stable connectivity and excellent performance across all devices. It uses fixed encryption settings, delivering lower latency and higher data transfer speeds compared to OpenVPN. However, WireGuard is easily identifiable by DPI systems due to its distinctive packet signatures, making it susceptible to blocking.
 
 Features:
-* Available on all AmneziaVPN platforms
+* Available on all COLDWIRE platforms
 * Low power consumption on mobile devices
 * Minimal configuration required
 * Easily detected by DPI systems (susceptible to blocking)
@@ -6905,7 +6896,7 @@ Features:
         <translation>WireGuard es un protocolo VPN moderno y ligero que ofrece conectividad estable y un rendimiento excelente en todos los dispositivos. Utiliza ajustes de cifrado fijos, lo que proporciona menor latencia y mayores velocidades de transferencia de datos en comparación con OpenVPN. Sin embargo, WireGuard es fácilmente identificable por sistemas DPI debido a sus firmas de paquetes distintivas, lo que lo hace susceptible a bloqueos.
 
 Características:
-* Disponible en todas las plataformas AmneziaVPN
+* Disponible en todas las plataformas COLDWIRE
 * Bajo consumo de energía en dispositivos móviles
 * Configuración mínima requerida
 * Fácilmente detectado por sistemas DPI (susceptible a bloqueos)
@@ -6918,7 +6909,7 @@ Características:
 AmneziaWG is an excellent choice for those seeking a fast, stealthy VPN connection.
 
 Features:
-* Available on all AmneziaVPN platforms
+* Available on all COLDWIRE platforms
 * Low battery consumption on mobile devices
 * Minimal settings required
 * Undetectable by traffic analysis systems (DPI)
@@ -6928,7 +6919,7 @@ Features:
 AmneziaWG es una excelente elección para quienes buscan una conexión VPN rápida y sigilosa.
 
 Características:
-* Disponible en todas las plataformas de AmneziaVPN
+* Disponible en todas las plataformas de COLDWIRE
 * Bajo consumo de batería en dispositivos móviles
 * Requiere una configuración mínima
 * Indetectable por sistemas de análisis de tráfico (DPI)
@@ -6960,7 +6951,7 @@ Características:
         <source>IKEv2, combined with IPSec encryption, is a modern and reliable VPN protocol. It reconnects quickly when switching networks or devices, making it ideal for dynamic network environments. While it provides good security and speed, it&apos;s easily recognized by DPI systems and susceptible to blocking.
 
 Features:
-* Available in AmneziaVPN only on Windows
+* Available in COLDWIRE only on Windows
 * Low battery consumption on mobile devices
 * Minimal configuration required
 * Detectable by DPI analysis systems(easily blocked)
@@ -6968,7 +6959,7 @@ Features:
         <translation>IKEv2, combinado con el cifrado IPSec, es un protocolo VPN moderno y fiable. Se reconecta rápidamente al cambiar de red o de dispositivo, lo que lo hace ideal para entornos de red dinámicos. Aunque ofrece buena seguridad y velocidad, es fácilmente reconocido por los sistemas DPI y susceptible de bloqueo.
 
 Características:
-* Disponible en AmneziaVPN solo en Windows
+* Disponible en COLDWIRE solo en Windows
 * Bajo consumo de batería en dispositivos móviles
 * Requiere una configuración mínima
 * Detectable por sistemas de análisis DPI (fácil de bloquear)

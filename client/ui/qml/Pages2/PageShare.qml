@@ -48,7 +48,7 @@ PageType {
             switch (type) {
             case PageShare.ConfigType.AmneziaConnection: {
                 ExportController.generateConnectionConfig(serverId, containerIndex, clientNameTextField.textField.text);
-                configCaption = qsTr("Save AmneziaVPN config")
+                configCaption = qsTr("Save COLDWIRE profile")
                 configExtension = ".vpn"
                 configFileName = "amnezia_config"
                 break;
@@ -99,7 +99,7 @@ PageType {
     property bool isSearchBarVisible: false
     property bool showContent: false
     property bool shareButtonEnabled: true
-    readonly property var amneziaConnectionFormat: ({ name: qsTr("For the AmneziaVPN app"), type: PageShare.ConfigType.AmneziaConnection })
+    readonly property var amneziaConnectionFormat: ({ name: qsTr("For COLDWIRE"), type: PageShare.ConfigType.AmneziaConnection })
     readonly property var openVpnConnectionFormat: ({ name: qsTr("OpenVPN native format"), type: PageShare.ConfigType.OpenVpn })
     readonly property var wireGuardConnectionFormat: ({ name: qsTr("WireGuard native format"), type: PageShare.ConfigType.WireGuard })
     readonly property var awgConnectionFormat: ({ name: qsTr("AmneziaWG native format"), type: PageShare.ConfigType.Awg })

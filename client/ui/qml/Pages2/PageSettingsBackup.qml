@@ -62,7 +62,7 @@ PageType {
                 Layout.bottomMargin: 24
 
                 text: qsTr("The backup will contain your passwords and private keys for all servers added " +
-                                 "to AmneziaVPN. Keep this information in a secure place.")
+                                 "to COLDWIRE. Keep this information in a secure place.")
             }
         }
     }
@@ -89,11 +89,11 @@ PageType {
             onClicked: {
                 var fileName = ""
                 if (GC.isMobile()) {
-                    fileName = "AmneziaVPN.backup"
+                    fileName = "COLDWIRE.backup"
                 } else {
                     fileName = SystemController.getFileName(qsTr("Save backup file"),
                                                             qsTr("Backup files (*.backup)"),
-                                                            StandardPaths.standardLocations(StandardPaths.DocumentsLocation) + "/AmneziaVPN",
+                                                            StandardPaths.standardLocations(StandardPaths.DocumentsLocation) + "/COLDWIRE",
                                                             true,
                                                             ".backup")
                 }

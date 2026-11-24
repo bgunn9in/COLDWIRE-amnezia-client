@@ -1,166 +1,135 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Shapes
+import QtQuick.Controls.impl
+import QtQuick.Layouts
 
 import Style 1.0
 
 import "../Controls2"
 import "../Controls2/TextTypes"
 
-Button {
+Item {
     id: root
 
-    property bool connected: ConnectionController.isConnected
-    property bool inProgress: ConnectionController.isConnectionInProgress
+    property bool wide: width >= 500
+    readonly property bool connected: ConnectionController.isConnected
+    readonly property bool inProgress: ConnectionController.isConnectionInProgress
+    readonly property bool failed: ConnectionController.hasConnectionError
+    readonly property color stateColor: {
+        if (root.inProgress) return AmneziaStyle.color.statusConnecting
+        if (root.connected) return AmneziaStyle.color.statusSuccess
+        if (root.failed) return AmneziaStyle.color.statusDestructive
+        return AmneziaStyle.color.statusIdle
+    }
 
-    implicitWidth: 190
-    implicitHeight: 190
+    implicitHeight: Math.max(root.wide ? 120 : 144, contents.implicitHeight + 28)
 
-    padding: 0
-    hoverEnabled: true
+    Rectangle {
+        anchors.fill: parent
+        radius: 2
+        topRightRadius: 14
+        border.color: AmneziaStyle.color.borderSoft
+        border.width: 1
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop {
+                position: 0
+                color: Qt.tint(AmneziaStyle.color.bgSurface, Qt.alpha(root.stateColor, 0.09))
+            }
+            GradientStop { position: 0.68; color: AmneziaStyle.color.bgSurface }
+        }
 
-    text: ConnectionController.connectionStateText
-
-    Connections {
-        target: ConnectionController
-
-        function onPreparingConfig() {
-            PageController.showNotificationMessage(qsTr("Unable to disconnect during configuration preparation"))
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.margins: 1
+            width: 2
+            color: root.stateColor
         }
     }
 
-    QtObject {
-        id: d
+    GridLayout {
+        id: contents
 
-        readonly property real ringRadius: (Math.min(root.width, root.height) - 2) / 2
-        readonly property color ringColor: root.connected && !root.inProgress ? AmneziaStyle.color.accentLight
-                                                                               : AmneziaStyle.color.borderEmphasis
-        readonly property int glowMargin: 24
-    }
+        anchors.fill: parent
+        anchors.margins: 14
+        columns: root.wide ? 2 : 1
+        columnSpacing: 14
+        rowSpacing: 12
 
-    background: Item {
-        implicitWidth: 190
-        implicitHeight: 190
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
 
-        Item {
-            anchors.fill: parent
+            Rectangle {
+                Layout.preferredWidth: 36
+                Layout.preferredHeight: 36
+                radius: 2
+                topRightRadius: 8
+                border.color: Qt.tint(AmneziaStyle.color.borderSoft, Qt.alpha(root.stateColor, 0.5))
+                border.width: 1
+                color: Qt.tint(AmneziaStyle.color.bgBase, Qt.alpha(root.stateColor, 0.1))
 
-            opacity: 0.1
-
-            Item {
-                id: diskSource
-
-                anchors.fill: parent
-                anchors.margins: -d.glowMargin
-
-                Shape {
-                    anchors.fill: parent
-
-                    preferredRendererType: Shape.CurveRenderer
-
-                    ShapePath {
-                        fillColor: AmneziaStyle.color.transparent
-                        strokeColor: d.ringColor
-                        strokeWidth: 1
-
-                        PathAngleArc {
-                            centerX: diskSource.width / 2
-                            centerY: diskSource.height / 2
-                            radiusX: d.ringRadius
-                            radiusY: d.ringRadius
-                            startAngle: 0
-                            sweepAngle: 360
-                        }
+                IconImage {
+                    anchors.centerIn: parent
+                    width: 18
+                    height: 18
+                    color: root.stateColor
+                    source: {
+                        if (root.inProgress) return "qrc:/images/controls/refresh-cw.svg"
+                        if (root.connected) return "qrc:/images/controls/check.svg"
+                        if (root.failed) return "qrc:/images/controls/alert-triangle.svg"
+                        return "qrc:/images/controls/radio.svg"
                     }
                 }
             }
 
-            ShadowType {
-                anchors.fill: diskSource
-                z: -1
-
-                source: diskSource
-                color: AmneziaStyle.color.shadowGlow
-                blur: 6
+            H3TextType {
+                Layout.fillWidth: true
+                text: root.failed ? qsTr("Connection error")
+                                  : root.connected || root.inProgress ? ConnectionController.connectionStateText
+                                                                     : qsTranslate("VpnProtocol", "Disconnected")
+                color: root.stateColor
+                font.family: AmneziaStyle.consoleFont
+                font.pixelSize: root.wide ? 23 : 18
+                wrapMode: Text.Wrap
             }
         }
 
-        Item {
-            anchors.fill: parent
+        ButtonType {
+            id: action
 
-            RingGlowType {
-                anchors.fill: parent
-                anchors.margins: -d.glowMargin
-
-                color: d.ringColor
-                radius: d.ringRadius
-                startAngle: 100
-                sweepAngle: root.inProgress ? 160 : 360
+            Layout.fillWidth: !root.wide
+            visible: !root.inProgress || ConnectionController.canCancelConnection
+            variant: ButtonType.Secondary
+            text: {
+                if (root.inProgress) return qsTranslate("PageSettingsSplitTunneling", "Cancel")
+                if (root.connected) return qsTranslate("SystemTrayNotificationHandler", "Disconnect")
+                if (root.failed) return qsTranslate("PageUpdate", "Retry")
+                return ConnectionController.connectionStateText
             }
 
-            Shape {
-                id: ringSource
+            background: Rectangle {
+                radius: 2
+                topRightRadius: 8
+                border.width: 1
+                border.color: root.inProgress || root.connected || root.failed
+                              ? Qt.tint(AmneziaStyle.color.borderSoft, Qt.alpha(root.stateColor, 0.55))
+                              : AmneziaStyle.color.connectActionBorder
+                color: {
+                    const base = root.inProgress || root.connected || root.failed
+                              ? Qt.tint(AmneziaStyle.color.bgSurface, Qt.alpha(root.stateColor, 0.10))
+                              : AmneziaStyle.color.connectAction
+                    return action.down ? Qt.darker(base, 1.2) : action.hovered ? Qt.lighter(base, 1.2) : base
+                }
 
-                anchors.fill: parent
-                anchors.margins: -d.glowMargin
-
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    fillColor: AmneziaStyle.color.transparent
-                    strokeColor: d.ringColor
-                    strokeWidth: 2
-                    capStyle: ShapePath.RoundCap
-
-                    PathAngleArc {
-                        centerX: ringSource.width / 2
-                        centerY: ringSource.height / 2
-                        radiusX: d.ringRadius
-                        radiusY: d.ringRadius
-                        startAngle: 100
-                        sweepAngle: root.inProgress ? 160 : 360
-                    }
+                FocusRingType {
+                    radius: 2
+                    visible: action.visualFocus
                 }
             }
 
-            RotationAnimator on rotation {
-                running: root.inProgress
-                from: 0
-                to: 360
-                loops: Animation.Infinite
-                duration: 1000
-            }
-        }
-
-        FocusRingType {
-            radius: root.width / 2
-            visible: root.visualFocus
+            onClicked: ConnectionController.connectButtonClicked()
         }
     }
-
-    contentItem: ButtonTextType {
-        text: root.text
-
-        color: root.connected && !root.inProgress ? AmneziaStyle.color.textAccent : AmneziaStyle.color.textPrimary
-        lineHeight: 30 + LanguageUiController.getLineHeightAppend()
-        font.pixelSize: 20
-        font.weight: 700
-
-        leftPadding: 16
-        rightPadding: 16
-
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-    }
-
-    HoverHandler {
-        cursorShape: Qt.PointingHandCursor
-    }
-
-    onClicked: {
-        ConnectionController.connectButtonClicked()
-    }
-
-    Keys.onEnterPressed: root.clicked()
-    Keys.onReturnPressed: root.clicked()
 }

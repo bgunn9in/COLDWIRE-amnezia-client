@@ -168,6 +168,16 @@ bool ConnectionUiController::isConnectionInProgress() const
     return m_isConnectionInProgress;
 }
 
+bool ConnectionUiController::hasConnectionError() const
+{
+    return m_state == Vpn::ConnectionState::Error || m_state == Vpn::ConnectionState::Unknown;
+}
+
+bool ConnectionUiController::canCancelConnection() const
+{
+    return m_state == Vpn::ConnectionState::Connecting || m_state == Vpn::ConnectionState::Reconnecting;
+}
+
 bool ConnectionUiController::isConnected() const
 {
     return m_isConnected;

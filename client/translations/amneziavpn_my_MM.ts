@@ -133,9 +133,8 @@
 <context>
     <name>ConnectButton</name>
     <message>
-        <location filename="../ui/qml/Components/ConnectButton.qml" line="28"/>
-        <source>Unable to disconnect during configuration preparation</source>
-        <translation>Configuration ပြင်ဆင်ခြင်းလုပ်ဆောင်နေချိန်အတွင်း ချိတ်ဆက်မှုဖြတ်တောက်၍မရပါ</translation>
+        <source>Connection error</source>
+        <translation>ချိတ်ဆက်မှု အမှား</translation>
     </message>
 </context>
 <context>
@@ -787,8 +786,8 @@ Already installed containers were found on the server. All installed containers 
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="57"/>
         <location filename="../ui/utils/notificationHandler.cpp" line="64"/>
-        <source>AmneziaVPN</source>
-        <translation>AmneziaVPN</translation>
+        <source>COLDWIRE</source>
+        <translation>COLDWIRE</translation>
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="58"/>
@@ -802,8 +801,8 @@ Already installed containers were found on the server. All installed containers 
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="88"/>
-        <source>AmneziaVPN notification</source>
-        <translation>AmneziaVPN နိုတီ</translation>
+        <source>COLDWIRE notification</source>
+        <translation>COLDWIRE နိုတီ</translation>
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="89"/>
@@ -850,6 +849,18 @@ Already installed containers were found on the server. All installed containers 
 <context>
     <name>PageHome</name>
     <message>
+        <source>Profile</source>
+        <translation>ပရိုဖိုင်</translation>
+    </message>
+    <message>
+        <source>Listed sites</source>
+        <translation>စာရင်းရှိ ဝက်ဘ်ဆိုက်များ</translation>
+    </message>
+    <message>
+        <source>Entry %1</source>
+        <translation>ဝင်ပေါက် %1</translation>
+    </message>
+    <message>
         <location filename="../ui/qml/Pages2/PageHome.qml" line="121"/>
         <source>Logging enabled</source>
         <translation>မှတ်တမ်းတင်ခြင်း ဖွင့်ထားပါသည်</translation>
@@ -858,16 +869,6 @@ Already installed containers were found on the server. All installed containers 
         <location filename="../ui/qml/Pages2/PageHome.qml" line="137"/>
         <source>Dev gateway enabled</source>
         <translation>Dev gateway enabled</translation>
-    </message>
-    <message>
-        <location filename="../ui/qml/Pages2/PageHome.qml" line="171"/>
-        <source>Split tunneling enabled</source>
-        <translation>split tunnelling ဖွင့်ထားပါသည်</translation>
-    </message>
-    <message>
-        <location filename="../ui/qml/Pages2/PageHome.qml" line="171"/>
-        <source>Split tunneling disabled</source>
-        <translation>split tunnelling ပိတ်ထားပါသည်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageHome.qml" line="398"/>
@@ -3368,8 +3369,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettings.qml" line="126"/>
-        <source>About AmneziaVPN</source>
-        <translation>AmneziaVPN အကြောင်း</translation>
+        <source>About COLDWIRE</source>
+        <translation>COLDWIRE အကြောင်း</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettings.qml" line="140"/>
@@ -3381,8 +3382,8 @@ Create one from the current settings.</source>
     <name>PageSettingsAbout</name>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="22"/>
-        <source>You have the latest version of AmneziaVPN</source>
-        <translation>သင့်တွင် AmneziaVPN ၏ နောက်ဆုံးဗားရှင်း ရှိပြီးဖြစ်ပါသည်</translation>
+        <source>No update found</source>
+        <translation>အပ်ဒိတ် မတွေ့ပါ</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="26"/>
@@ -3390,14 +3391,9 @@ Create one from the current settings.</source>
         <translation>အပ်ဒိတ်များရှိမရှိ စစ်ဆေး၍ မရပါ</translation>
     </message>
     <message>
-        <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="69"/>
-        <source>Support Amnezia</source>
-        <translation>Amnezia ကိုကူညီပံ့ပိုးမည်</translation>
-    </message>
-    <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="80"/>
-        <source>Amnezia is a free and open-source application. You can support the developers if you like it.</source>
-        <translation>Amnezia သည် အခမဲ့ open-source application တစ်ခုဖြစ်သည်။ သင်နှစ်သက်ပါက developer များကို ပံ့ပိုးနိုင်ပါသည်.</translation>
+        <source>COLDWIRE is based on the open-source AmneziaVPN client.</source>
+        <translation>COLDWIRE သည် open-source AmneziaVPN client ကို အခြေခံထားပါသည်။</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="101"/>
@@ -3478,11 +3474,6 @@ Create one from the current settings.</source>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="143"/>
         <source>Discover the source code</source>
         <translation>Source code ကို ကြည့်မည်</translation>
-    </message>
-    <message>
-        <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="146"/>
-        <source>https://github.com/amnezia-vpn/amnezia-client</source>
-        <translation>https://github.com/amnezia-vpn/amnezia-client</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="152"/>
@@ -3683,8 +3674,8 @@ Create one from the current settings.</source>
     <name>PageSettingsApiNativeConfigs</name>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiNativeConfigs.qml" line="21"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>AmneziaVPN config ကိုသိမ်းဆည်းမည်</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>COLDWIRE config ကိုသိမ်းဆည်းမည်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiNativeConfigs.qml" line="186"/>
@@ -3984,8 +3975,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="111"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>AmneziaVPN config ကိုသိမ်းဆည်းမည်</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>COLDWIRE config ကိုသိမ်းဆည်းမည်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="112"/>
@@ -4224,8 +4215,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApplication.qml" line="274"/>
-        <source>All settings will be reset to default. All installed AmneziaVPN services will still remain on the server.</source>
-        <translation>ဆက်တင်အားလုံးကို မူရင်းအတိုင်း ပြန်လည်သတ်မှတ်ပါမည်။ ထည့်သွင်းထားသော AmneziaVPN ဝန်ဆောင်မှုများအားလုံးသည် ဆာဗာပေါ်တွင် ဆက်လက်ရှိနေမည်ဖြစ်သည်။.</translation>
+        <source>All settings will be reset to default. Installed services will stay on the server.</source>
+        <translation>ဆက်တင်အားလုံးကို မူရင်းအတိုင်း ပြန်လည်သတ်မှတ်ပါမည်။ ထည့်သွင်းထားသော COLDWIRE ဝန်ဆောင်မှုများအားလုံးသည် ဆာဗာပေါ်တွင် ဆက်လက်ရှိနေမည်ဖြစ်သည်။.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApplication.qml" line="275"/>
@@ -4262,8 +4253,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsBackup.qml" line="64"/>
-        <source>The backup will contain your passwords and private keys for all servers added to AmneziaVPN. Keep this information in a secure place.</source>
-        <translation>အရံဖိုင်တွင် AmneziaVPN သို့ ထည့်ထားသော ဆာဗာအားလုံးအတွက် သင့်စကားဝှက်များနှင့် လျှို့ဝှက်သော့များ ပါဝင်ပါမည်။ ဤအချက်အလက်ကို လုံခြုံသောနေရာတွင် ထားပါ။.</translation>
+        <source>The backup will contain your passwords and private keys for all servers added to COLDWIRE. Keep this information in a secure place.</source>
+        <translation>အရံဖိုင်တွင် COLDWIRE သို့ ထည့်ထားသော ဆာဗာအားလုံးအတွက် သင့်စကားဝှက်များနှင့် လျှို့ဝှက်သော့များ ပါဝင်ပါမည်။ ဤအချက်အလက်ကို လုံခြုံသောနေရာတွင် ထားပါ။.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsBackup.qml" line="87"/>
@@ -4968,8 +4959,8 @@ Only one can be active at a time: VPN or local proxy</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="177"/>
-        <source>All installed AmneziaVPN services will still remain on the server.</source>
-        <translation>ထည့်သွင်းထားသော AmneziaVPN ဝန်ဆောင်မှုများအားလုံးသည် ဆာဗာပေါ်တွင် ဆက်လက်ရှိနေမည်ဖြစ်သည်.</translation>
+        <source>Installed services will stay on the server.</source>
+        <translation>ထည့်သွင်းထားသော COLDWIRE ဝန်ဆောင်မှုများအားလုံးသည် ဆာဗာပေါ်တွင် ဆက်လက်ရှိနေမည်ဖြစ်သည်.</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="183"/>
@@ -5495,8 +5486,8 @@ Only one can be active at a time: VPN or local proxy</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardConfigSource.qml" line="151"/>
-        <source>Configure Amnezia VPN on your own server</source>
-        <translation>Amnezia VPN ကို သင်၏ကိုယ်ပိုင်ဆာဗာပေါ်တွင် စီစဥ်ချိန်ညှိမည်</translation>
+        <source>Set up a VPN on your own server</source>
+        <translation>COLDWIRE ကို သင်၏ကိုယ်ပိုင်ဆာဗာပေါ်တွင် စီစဥ်ချိန်ညှိမည်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardConfigSource.qml" line="168"/>
@@ -5877,8 +5868,8 @@ Only one can be active at a time: VPN or local proxy</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="51"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>AmneziaVPN config ကိုသိမ်းဆည်းမည်</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>COLDWIRE config ကိုသိမ်းဆည်းမည်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="58"/>
@@ -5912,8 +5903,8 @@ Only one can be active at a time: VPN or local proxy</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="102"/>
-        <source>For the AmneziaVPN app</source>
-        <translation>AmneziaVPN အက်ပ်အတွက်</translation>
+        <source>For COLDWIRE</source>
+        <translation>COLDWIRE အက်ပ်အတွက်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="103"/>
@@ -6075,8 +6066,8 @@ Only one can be active at a time: VPN or local proxy</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="30"/>
-        <source>Save AmneziaVPN config</source>
-        <translation>AmneziaVPN config ကိုသိမ်းဆည်းမည်</translation>
+        <source>Save COLDWIRE profile</source>
+        <translation>COLDWIRE config ကိုသိမ်းဆည်းမည်</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="125"/>
@@ -6840,14 +6831,14 @@ Only one can be active at a time: VPN or local proxy</source>
         <source>OpenVPN is one of the most popular and reliable VPN protocols. It uses SSL/TLS encryption, supports a wide variety of devices and operating systems, and is continuously improved by the community due to its open-source nature. It provides a good balance between speed and security but is easily recognized by DPI systems, making it susceptible to blocking.
 
 Features:
-* Available on all AmneziaVPN platforms
+* Available on all COLDWIRE platforms
 * Normal battery consumption on mobile devices
 * Flexible customization for various devices and OS
 * Operates over both TCP and UDP protocols</source>
         <translation>OpenVPN သည် အလွန်လူကြိုက်များ၍ စိတ်ချရသော VPN ပရိုတိုကောများအထဲမှ တစ်ခုဖြစ်ပါသည်။ SSL/TLS စာဝှက်နည်းကို အသုံးပြုပြီး စက်ပစ္စည်းနှင့် စနစ်အမျိုးမျိုးကို ပံ့ပိုးပါသည်။ open-source ဖြစ်သောကြောင့် အသိုင်းအဝိုင်းမှ အဆက်မပြတ် ပိုမိုကောင်းမွန်လာပါသည်။ အလျင်နှင့် လုံခြုံမှုအကြား ချိန်ခွင်လျှာမှန်ကန်ပါသည်။ သို့ရာတွင် DPI စနစ်များက အလွယ်တကူ ရှာဖွေတွေ့ရှိနိုင်သဖြင့် ပိတ်ဆို့ခံရနိုင်ပါသည်။
 
 အင်္ဂါရပ်များ:
-* AmneziaVPN ပလက်ဖောင်းအားလုံးတွင် ရရှိနိုင်သည်
+* COLDWIRE ပလက်ဖောင်းအားလုံးတွင် ရရှိနိုင်သည်
 * မိုဘိုင်းစက်များတွင် ပုံမှန် ဘက်ထရီအသုံးပြုမှု
 * စက်နှင့် စနစ်အမျိုးမျိုးအတွက် လိုအပ်သလို ချိန်ညှိနိုင်သည်
 * TCP နှင့် UDP ပရိုတိုကော နှစ်မျိုးလုံးဖြင့် အလုပ်လုပ်သည်</translation>
@@ -6857,7 +6848,7 @@ Features:
         <source>WireGuard is a modern, streamlined VPN protocol offering stable connectivity and excellent performance across all devices. It uses fixed encryption settings, delivering lower latency and higher data transfer speeds compared to OpenVPN. However, WireGuard is easily identifiable by DPI systems due to its distinctive packet signatures, making it susceptible to blocking.
 
 Features:
-* Available on all AmneziaVPN platforms
+* Available on all COLDWIRE platforms
 * Low power consumption on mobile devices
 * Minimal configuration required
 * Easily detected by DPI systems (susceptible to blocking)
@@ -6865,7 +6856,7 @@ Features:
         <translation>WireGuard သည် စက်ပစ္စည်းအားလုံးတွင် ကြံ့ခိုင်သော ချိတ်ဆက်မှုနှင့် ထူးချွန်သော စွမ်းဆောင်ရည်ကို ပေးစွမ်းသည့် ခေတ်မီ၍ ရှင်းလင်းသော VPN ပရိုတိုကောဖြစ်ပါသည်။ သတ်မှတ်ထားသော စာဝှက်ဆက်တင်များကို အသုံးပြုသဖြင့် OpenVPN နှင့် နှိုင်းယှဉ်လျှင် နှောင့်နှေးမှုနည်းပြီး ဒေတာပို့လွှတ်မှု ပိုမိုလျင်မြန်ပါသည်။ သို့ရာတွင် WireGuard သည် ထူးခြားသော packet လက်မှတ်များကြောင့် DPI စနစ်များက အလွယ်တကူ ခွဲခြားသိရှိနိုင်သဖြင့် ပိတ်ဆို့ခံရနိုင်ပါသည်။
 
 အင်္ဂါရပ်များ:
-* AmneziaVPN ပလက်ဖောင်းအားလုံးတွင် ရရှိနိုင်သည်
+* COLDWIRE ပလက်ဖောင်းအားလုံးတွင် ရရှိနိုင်သည်
 * မိုဘိုင်းစက်များတွင် ပါဝါအသုံးပြုမှုနည်းသည်
 * ဆက်တင် အနည်းငယ်သာ လိုအပ်သည်
 * DPI စနစ်များက အလွယ်တကူ ရှာဖွေတွေ့ရှိနိုင်သည် (ပိတ်ဆို့ခံရနိုင်သည်)
@@ -6878,7 +6869,7 @@ Features:
 AmneziaWG is an excellent choice for those seeking a fast, stealthy VPN connection.
 
 Features:
-* Available on all AmneziaVPN platforms
+* Available on all COLDWIRE platforms
 * Low battery consumption on mobile devices
 * Minimal settings required
 * Undetectable by traffic analysis systems (DPI)
@@ -6888,7 +6879,7 @@ Features:
 လျင်မြန်၍ မထင်မရှားသော VPN ချိတ်ဆက်မှုကို ရှာနေသူများအတွက် AmneziaWG သည် အလွန်ကောင်းမွန်သော ရွေးချယ်မှုဖြစ်ပါသည်။
 
 အင်္ဂါရပ်များ:
-* AmneziaVPN ပလက်ဖောင်းအားလုံးတွင် ရရှိနိုင်သည်
+* COLDWIRE ပလက်ဖောင်းအားလုံးတွင် ရရှိနိုင်သည်
 * မိုဘိုင်းစက်များတွင် ဘက်ထရီအသုံးပြုမှုနည်းသည်
 * ဆက်တင် အနည်းငယ်သာ လိုအပ်သည်
 * ဒေတာစီးဆင်းမှု ခွဲခြမ်းစိတ်ဖြာသည့် စနစ်များ (DPI) က ရှာဖွေတွေ့ရှိနိုင်ခြင်း မရှိပါ
@@ -6920,7 +6911,7 @@ VMess၊ VLESS နှင့် XTLS-Vision ကဲ့သို့ ပရိုတ
         <source>IKEv2, combined with IPSec encryption, is a modern and reliable VPN protocol. It reconnects quickly when switching networks or devices, making it ideal for dynamic network environments. While it provides good security and speed, it&apos;s easily recognized by DPI systems and susceptible to blocking.
 
 Features:
-* Available in AmneziaVPN only on Windows
+* Available in COLDWIRE only on Windows
 * Low battery consumption on mobile devices
 * Minimal configuration required
 * Detectable by DPI analysis systems(easily blocked)
@@ -6928,7 +6919,7 @@ Features:
         <translation>IKEv2 ကို IPSec စာဝှက်နည်းနှင့် တွဲဖက်အသုံးပြုသောအခါ ခေတ်မီ၍ စိတ်ချရသော VPN ပရိုတိုကော ဖြစ်လာပါသည်။ ကွန်ရက် သို့မဟုတ် စက်ပစ္စည်း ပြောင်းလဲသောအခါ လျင်မြန်စွာ ပြန်လည်ချိတ်ဆက်နိုင်သဖြင့် အမြဲပြောင်းလဲနေသော ကွန်ရက်ပတ်ဝန်းကျင်များအတွက် အလွန်သင့်လျော်ပါသည်။ လုံခြုံမှုနှင့် အလျင်ကောင်းမွန်သော်လည်း DPI စနစ်များက အလွယ်တကူ ရှာဖွေတွေ့ရှိနိုင်သဖြင့် ပိတ်ဆို့ခံရနိုင်ပါသည်။
 
 အင်္ဂါရပ်များ:
-* AmneziaVPN တွင် Windows ပေါ်၌သာ ရရှိနိုင်သည်
+* COLDWIRE တွင် Windows ပေါ်၌သာ ရရှိနိုင်သည်
 * မိုဘိုင်းစက်များတွင် ဘက်ထရီအသုံးပြုမှုနည်းသည်
 * ဆက်တင် အနည်းငယ်သာ လိုအပ်သည်
 * DPI ခွဲခြမ်းစိတ်ဖြာသည့် စနစ်များက ရှာဖွေတွေ့ရှိနိုင်သည် (အလွယ်တကူ ပိတ်ဆို့ခံရသည်)

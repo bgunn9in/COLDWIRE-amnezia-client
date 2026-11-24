@@ -41,7 +41,7 @@ Window  {
     }
 
     visible: !GC.isDesktop()
-    width: GC.screenWidth
+    width: GC.isDesktop() ? 580 : GC.screenWidth
     height: GC.screenHeight
     minimumWidth: GC.isDesktop() ? 360 : 0
     minimumHeight: GC.isDesktop() ? 640 : 0
@@ -62,7 +62,7 @@ Window  {
         console.warn("Scene graph error:", error, message)
     }
 
-    title: "AmneziaVPN"
+    title: Qt.application.displayName
 
     Loader {
         active: Qt.platform.os === "android"

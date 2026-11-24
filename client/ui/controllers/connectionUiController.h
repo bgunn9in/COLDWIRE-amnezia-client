@@ -17,6 +17,8 @@ class ConnectionUiController : public QObject
 public:
     Q_PROPERTY(bool isConnected READ isConnected NOTIFY connectionStateChanged)
     Q_PROPERTY(bool isConnectionInProgress READ isConnectionInProgress NOTIFY connectionStateChanged)
+    Q_PROPERTY(bool hasConnectionError READ hasConnectionError NOTIFY connectionStateChanged)
+    Q_PROPERTY(bool canCancelConnection READ canCancelConnection NOTIFY connectionStateChanged)
     Q_PROPERTY(QString connectionStateText READ connectionStateText NOTIFY connectionStateChanged)
 
     explicit ConnectionUiController(ConnectionController* connectionController,
@@ -27,6 +29,8 @@ public:
 
     bool isConnected() const;
     bool isConnectionInProgress() const;
+    bool hasConnectionError() const;
+    bool canCancelConnection() const;
     QString connectionStateText() const;
 
 public slots:

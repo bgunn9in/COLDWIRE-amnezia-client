@@ -313,6 +313,7 @@ PageType {
         TabBarButtonType {
             id: homeTabButton
 
+            horizontal: tabBar.width >= 500
             text: qsTr("Home")
             icon.source: "qrc:/images/controls/home.svg"
 
@@ -325,6 +326,7 @@ PageType {
         TabBarButtonType {
             id: shareTabButton
 
+            horizontal: tabBar.width >= 500
             Connections {
                 target: ServersModel
 
@@ -349,6 +351,7 @@ PageType {
         TabBarButtonType {
             id: settingsTabButton
 
+            horizontal: tabBar.width >= 500
             text: qsTr("Settings")
             icon.source: "qrc:/images/controls/settings.svg"
             showBadge: ServersUiController.hasServersFromGatewayApi && NewsModel.hasUnread && SettingsController.isNewsNotificationsEnabled()
@@ -361,6 +364,7 @@ PageType {
         TabBarButtonType {
             id: plusTabButton
 
+            horizontal: tabBar.width >= 500
             text: qsTr("Add")
             icon.source: "qrc:/images/controls/plus.svg"
 

@@ -11,6 +11,8 @@
         <file>Components/UpdateSupportDrawer.qml</file>
         <file>Components/PromoBanner.qml</file>
         <file>Components/ConnectButton.qml</file>
+        <file>Components/HomeBrandHeader.qml</file>
+        <file>Components/HomeCard.qml</file>
         <file>Components/CountryListStickyHeader.qml</file>
         <file>Components/CountrySearchRow.qml</file>
         <file>Components/CountrySectionHeader.qml</file>

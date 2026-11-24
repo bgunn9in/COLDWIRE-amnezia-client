@@ -10,6 +10,7 @@ ItemDelegate {
 
     property string overline
     property string subtitle
+    property color titleColor: AmneziaStyle.color.textPrimary
     property color subtitleColor: AmneziaStyle.color.textTertiary
     property string trailingIconSource
     property string flagCode
@@ -107,7 +108,7 @@ ItemDelegate {
                 if (root.locked) {
                     return AmneziaStyle.color.textSecondary
                 }
-                return AmneziaStyle.color.textPrimary
+                return root.titleColor
             }
         }
 

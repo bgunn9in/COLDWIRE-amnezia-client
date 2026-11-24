@@ -148,7 +148,7 @@ PageType {
                 Layout.leftMargin: 16
 
                 text: qsTr("Self-hosted VPN")
-                subtitle: qsTr("Configure Amnezia VPN on your own server")
+                subtitle: qsTr("Set up a VPN on your own server")
 
                 icon.source: "qrc:/images/controls/server.svg"
 
@@ -365,11 +365,11 @@ PageType {
                 onClicked: {
                     var fileName = ""
                     if (GC.isMobile()) {
-                        fileName = "AmneziaVPN.log"
+                        fileName = "COLDWIRE.log"
                     } else {
                         fileName = SystemController.getFileName(qsTr("Save"),
                                                                 qsTr("Logs files (*.log)"),
-                                                                StandardPaths.standardLocations(StandardPaths.DocumentsLocation) + "/AmneziaVPN",
+                                                                StandardPaths.standardLocations(StandardPaths.DocumentsLocation) + "/COLDWIRE",
                                                                 true,
                                                                 ".log")
                     }
