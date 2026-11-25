@@ -68,14 +68,14 @@ def sample(ip, expected, physical, allowed_tunnel=None):
     if interface != physical and interface != allowed_tunnel:
         raise RuntimeError(f'Probe route left the isolated lab: {interface}')
     found = subprocess.check_output(['/usr/bin/curl', '--noproxy', '*', '--fail', '--silent',
-                                     '--show-error', '--connect-timeout', '2', '--max-time', '4',
-                                     f'http://{ip}:18080/'], text=True, timeout=6, stderr=subprocess.DEVNULL)
+                                     '--show-error', '--connect-timeout', '5', '--max-time', '7',
+                                     f'http://{ip}:18080/'], text=True, timeout=9)
     if str(IPv4Address(found)) != expected:
         raise AssertionError(f'{ip}: observer saw {found}, expected {expected}')
     return found
 
 
-def set_gateway(address, interface):
+def set_gateway(address, interface, source=None):
     try:
         current = route('default')
         if (current.get('gateway'), current.get('interface')) == (address, interface):
@@ -83,7 +83,9 @@ def set_gateway(address, interface):
     except subprocess.CalledProcessError:
         pass
     privileged('/sbin/route', '-qn', 'delete', '-inet', 'default', capture_output=True)
-    privileged('/sbin/route', '-qn', 'add', '-inet', 'default', address, '-ifp', interface, check=True)
+    options = ['-ifa', source] if source else []
+    privileged('/sbin/route', '-qn', 'add', '-inet', 'default', '-gateway', address,
+               '-ifp', interface, *options, check=True)
 
 
 def restore_gateway(address, interface, marker):
@@ -159,7 +161,7 @@ def main(root):
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      start_new_session=True)
     try:
-        set_gateway(gateway, physical)
+        set_gateway(gateway, physical, provider)
         selected = route(targets[-1])
         assert selected.get('interface') == physical, selected
         print(f'Isolated provider route active on {physical}: {selected}', flush=True)

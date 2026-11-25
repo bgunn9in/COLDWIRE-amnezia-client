@@ -87,6 +87,7 @@ def configure():
     run('modprobe', 'tun')
     run('ip', 'addr', 'add', ENTRY + '/32', 'dev', 'lab0')
     run('sysctl', '-qw', 'net.ipv4.ip_forward=1')
+    run('sysctl', '-qw', 'net.ipv4.neigh.lab0.proxy_delay=0')
     link(NAMESPACE, '192.168.92', 'exit-host', 'exit-peer')
     link('cw-mac-observer', '192.168.93', 'look-host', 'look-peer')
     netns(NAMESPACE, 'sysctl', '-qw', 'net.ipv4.ip_forward=1')

@@ -98,8 +98,17 @@ if ! "${guest[@]}" "sudo /usr/bin/python3 $guest_root/prepare.py"; then
 fi
 umask 077
 "${guest[@]}" "sudo tar -C $guest_root -cf - lab.json client.vpn" | tar -xf - -C "$work"
-"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i lab0 -c 80 'tcp port 18080 or udp port 32497'; fi"
+arp_filter=$(python3 - "$work/lab.json" <<'PY'
+from ipaddress import IPv4Address
+import json
+from pathlib import Path
+import sys
+data = json.loads(Path(sys.argv[1]).read_text())
+print(' or '.join(f'host {IPv4Address(ip)}' for ip in [*data['targets'], data['entry']]))
+PY
+)
+"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i lab0 -c 150 '(arp and ($arp_filter)) or tcp port 18080 or udp port 32497'; fi"
 if ! python3 "$test_path/check_relay_routes.py" "$work"; then
-    "${guest[@]}" 'ip -s link show lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer --no-pager -n 30' || true
+    "${guest[@]}" 'ip -s link show lab0; ip neigh show proxy dev lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer --no-pager -n 70' || true
     exit 1
 fi

@@ -1,4 +1,4 @@
-name: Verify the built ARM64 package on macOS 26
+name: Verify the built ARM64 package on macOS 15
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   macos:
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 32
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -31,7 +31,7 @@ jobs:
           sw_vers
           package=(installer/*_macos_arm64.pkg)
           test "${#package[@]}" -eq 1
-          shasum -a 256 "${package[0]}"
+          printf '%s  %s\n' 386936ba224d7ce2574021e63d0d1df0a96a2032756125365533361504a325f4 "${package[0]}" | shasum -a 256 -c -
           if ! sudo /usr/sbin/installer -dumplog -verboseR -pkg "${package[0]}" -target /; then
             sudo tail -n 75 /var/log/install.log || true
             sudo tail -n 60 /var/log/AmneziaVPN/post-install.log || true
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: always()
         with:
-          name: coldwire-macos-egress-macos-26
+          name: coldwire-macos-egress-macos-15
           path: ${{ runner.temp }}/coldwire-macos-egress.log
           if-no-files-found: ignore
           retention-days: 7
