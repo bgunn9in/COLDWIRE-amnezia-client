@@ -1,0 +1,79 @@
+name: Diagnose the ARM64 installer scripts
+
+on:
+  push:
+    branches: [test/macos-installer-diagnostics]
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [macos-15, macos-26]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Exercise the production installer scripts with a small ARM64 app
+        shell: bash
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(uname -m)" = arm64
+          sw_vers
+          cmake --version
+          fixture=$(mktemp -d "$RUNNER_TEMP/coldwire-installer.XXXXXX")
+          ln -s "$GITHUB_WORKSPACE/cmake" "$fixture/cmake"
+          ln -s "$GITHUB_WORKSPACE/deploy" "$fixture/deploy"
+          cat > "$fixture/main.c" <<'EOF'
+          #include <unistd.h>
+          int main(void) {
+              sleep(20);
+              return 0;
+          }
+          EOF
+          cat > "$fixture/Info.plist" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleIdentifier</key><string>org.amneziavpn.AmneziaVPN</string>
+            <key>CFBundleExecutable</key><string>AmneziaVPN</string>
+            <key>CFBundleName</key><string>COLDWIRE installer fixture</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleVersion</key><string>1</string>
+          </dict>
+          </plist>
+          EOF
+          cat > "$fixture/CMakeLists.txt" <<'EOF'
+          cmake_minimum_required(VERSION 3.25)
+          project(AmneziaVPN LANGUAGES C)
+          set(AMNEZIAVPN_VERSION 5.1.1.10)
+          add_executable(AmneziaVPN main.c)
+          add_executable(AmneziaVPN-service main.c)
+          install(TARGETS AmneziaVPN AmneziaVPN-service
+                  RUNTIME DESTINATION AmneziaVPN.app/Contents/MacOS COMPONENT AmneziaVPN)
+          install(FILES Info.plist DESTINATION AmneziaVPN.app/Contents COMPONENT AmneziaVPN)
+          include(cmake/CPack.cmake)
+          EOF
+          cmake -S "$fixture" -B "$fixture/build" -G Ninja -DCMAKE_OSX_ARCHITECTURES=arm64
+          cmake --build "$fixture/build"
+          cpack --config "$fixture/build/CPackConfig.cmake" -B "$fixture/out" -G productbuild
+          package=("$fixture"/out/*_macos_arm64.pkg)
+          test -f "${package[0]}"
+          pkgutil --expand-full "${package[0]}" "$fixture/expanded"
+          for script in "$fixture"/expanded/*/Scripts/*install; do
+            ls -l "$script"
+            head -n 1 "$script"
+          done
+          if ! sudo /usr/sbin/installer -dumplog -verboseR -pkg "${package[0]}" -target /; then
+            sudo tail -n 100 /var/log/install.log || true
+            sudo tail -n 70 /var/log/AmneziaVPN/post-install.log || true
+            exit 1
+          fi
+          test -x /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN
+          sudo launchctl print system/AmneziaVPN-service | grep 'state = running'
