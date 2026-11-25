@@ -7,7 +7,7 @@ permissions:
 jobs:
   macos:
     name: macOS Apple Silicon
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
