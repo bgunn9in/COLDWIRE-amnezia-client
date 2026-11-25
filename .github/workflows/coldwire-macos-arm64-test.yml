@@ -1,14 +1,14 @@
 name: Test the Apple Silicon package
 on:
   push:
-    branches: [test/macos-arm64-only]
+    branches: [test/macos-arm64-egress]
 permissions:
   contents: read
 jobs:
   macos:
     name: macOS Apple Silicon
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,6 +48,7 @@ jobs:
 
       - name: Verify the ARM64 package and start the client
         run: |
+          test "$(uname -m)" = arm64
           shopt -s nullglob
           packages=(deploy/build/*_macos_arm64.pkg)
           test "${#packages[@]}" -eq 1
@@ -77,4 +78,25 @@ jobs:
           name: coldwire-macos-unsigned
           path: deploy/build/*_macos_arm64.pkg
           if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: bgunn9in/coldwire
+          ref: 57d7517401ae246e89e7e9e8ed2ff17fdcabcf2e
+          path: admin-panel
+          persist-credentials: false
+
+      - name: Verify split tunneling with the installed client
+        timeout-minutes: 25
+        run: |
+          set -o pipefail
+          bash client/tests/macos/run_relay_routes.sh 2>&1 | tee "$RUNNER_TEMP/coldwire-macos-egress.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coldwire-macos-egress
+          path: ${{ runner.temp }}/coldwire-macos-egress.log
+          if-no-files-found: ignore
           retention-days: 7
