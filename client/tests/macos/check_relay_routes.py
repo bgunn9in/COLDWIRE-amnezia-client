@@ -74,7 +74,7 @@ def main(root):
         IPv4Address(address)
     physical = route(gateway)['interface']
     assert physical != route('default')['interface']
-    assert f'inet {provider} ' in subprocess.check_output(['/sbin/ifconfig', physical], text=True)
+    assert f'inet {provider} ' in subprocess.check_output(['/sbin/ifconfig', physical], text=True), physical
 
     subprocess.run(['/usr/bin/pkill', '-TERM', '-x', 'AmneziaVPN'], check=False)
     time.sleep(2)
@@ -123,6 +123,12 @@ def main(root):
                                 raise RuntimeError(f'The observer did not answer in mode {mode}') from None
                             time.sleep(1)
                     print(f'PASS macOS IPv4 {mode}: observer={seen}', flush=True)
+                except Exception:
+                    lines = (root / f'client-{mode}.log').read_text(errors='replace').splitlines()
+                    notes = [line for line in lines if re.search(r'connectionState|split tunneling|error|handshake', line, re.I)]
+                    for note in notes[-10:]:
+                        print(re.sub(r'[A-Za-z0-9+/_=-]{40,}', '[redacted]', note), flush=True)
+                    raise
                 finally:
                     deactivate()
                     if client.poll() is None:

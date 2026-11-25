@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-ROOT = Path('/run/coldwire-mac-test')
+ROOT = Path('/opt/coldwire-mac-test')
 PANEL = ROOT / 'panel'
 TOOLS = ROOT / 'tools'
 GATEWAY = '192.168.91.2'
@@ -149,6 +149,7 @@ table ip cw_mac_nat {{
     netns(NAMESPACE, 'ip', 'link', 'set', 'awg0', 'mtu', '1280', 'up')
     (ROOT / 'lab.json').write_text(json.dumps(dict(provider=PROVIDER, gateway=GATEWAY, entry=ENTRY,
                                                    exit=EXIT, targets=targets)), encoding='utf-8')
+    print('Ready: isolated relay, exit and observer', flush=True)
 
 
 if __name__ == '__main__':

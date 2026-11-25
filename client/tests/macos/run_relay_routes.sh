@@ -6,6 +6,7 @@ test "$(uname -m)" = x86_64
 work=$(mktemp -d "$RUNNER_TEMP/coldwire-routes.XXXXXX")
 source_path="$PWD"
 test_path="$source_path/client/tests/macos"
+guest_root=/opt/coldwire-mac-test
 
 finish() {
     local result=$?
@@ -86,14 +87,14 @@ if ! "${guest[@]}" 'test "$(cat /var/lib/cloud/data/instance-id)" = coldwire-mac
     "${guest[@]}" 'hostname; ip -brief address; cloud-init status --long; ls -l /usr/sbin/nft' || true
     exit 1
 fi
-"${guest[@]}" 'sudo touch /run/coldwire-mac-test-fixture && sudo install -d -m 700 /run/coldwire-mac-test/panel /run/coldwire-mac-test/tools'
+"${guest[@]}" "sudo touch /run/coldwire-mac-test-fixture && sudo install -d -m 700 $guest_root/panel $guest_root/tools"
 tar -C "$source_path/admin-panel" -czf - exit_config.py convert_profile.py ru-services.amnezia.json \
     ru-direct.amnezia.json dist/awg-native-linux-amd64.tar.gz |
-    "${guest[@]}" 'sudo tar -xzf - -C /run/coldwire-mac-test/panel'
-"${guest[@]}" 'sudo tee /run/coldwire-mac-test/prepare.py >/dev/null' < "$test_path/prepare_relay_guest.py"
-"${guest[@]}" 'sudo /usr/bin/python3 /run/coldwire-mac-test/prepare.py'
+    "${guest[@]}" "sudo tar -xzf - -C $guest_root/panel"
+"${guest[@]}" "sudo tee $guest_root/prepare.py >/dev/null" < "$test_path/prepare_relay_guest.py"
+"${guest[@]}" "sudo /usr/bin/python3 $guest_root/prepare.py"
 umask 077
 for name in lab.json ru-direct.vpn ru-services.vpn all.vpn; do
-    "${guest[@]}" "sudo cat /run/coldwire-mac-test/$name" > "$work/$name"
+    "${guest[@]}" "sudo cat $guest_root/$name" > "$work/$name"
 done
 python3 "$test_path/check_relay_routes.py" "$work"
