@@ -4,7 +4,7 @@
 
 COLDWIRE Amnezia VPN — форк AmneziaVPN. Перед подключением по AmneziaWG 3.1 приложение запрашивает SPA-допуск на входном узле COLDWIRE. Для подключения нужен `.vpn`, который выдал или конвертировал администратор реле.
 
-- [Скачать клиент](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest) для Windows x64, macOS (Intel и Apple Silicon) или Android ARM64. Выберите APK для Android 9/10 либо для Android 11 и новее.
+- [Скачать клиент](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest) для Windows x64, Mac с Apple Silicon или Android ARM64. Выберите APK для Android 9/10 либо для Android 11 и новее.
 - [Установить приложение и подключиться](docs/spa.ru.md).
 - [Развернуть реле или управлять устройствами](https://github.com/bgunn9in/coldwire).
 

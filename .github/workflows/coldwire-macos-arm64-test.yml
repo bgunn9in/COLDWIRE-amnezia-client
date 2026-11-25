@@ -1,0 +1,80 @@
+name: Test the Apple Silicon package
+on:
+  push:
+    branches: [test/macos-arm64-only]
+permissions:
+  contents: read
+jobs:
+  macos:
+    name: macOS Apple Silicon
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3.0'
+
+      - uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.10.1'
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: qtremoteobjects qt5compat qtshadertools qthttpserver qtwebsockets
+          dir: ${{ runner.temp }}
+          aqtversion: '==3.3.0'
+          set-env: true
+
+      - name: Test SPA profile handling
+        run: |
+          cmake -S client/tests/spa -B spa-check -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build spa-check
+          ctest --test-dir spa-check --output-on-failure
+
+      - name: Build the standalone macOS package
+        env:
+          QT_INSTALL_DIR: ${{ runner.temp }}
+        run: |
+          python -m pip install 'conan==2.28.0'
+          deploy/build.sh -t macos --generator Ninja --installer productbuild
+
+      - name: Verify the ARM64 package and start the client
+        run: |
+          shopt -s nullglob
+          packages=(deploy/build/*_macos_arm64.pkg)
+          test "${#packages[@]}" -eq 1
+          expanded="$RUNNER_TEMP/coldwire-package"
+          pkgutil --expand-full "${packages[0]}" "$expanded"
+          test "$(xmllint --xpath 'string(/installer-gui-script/options/@hostArchitectures)' "$expanded/Distribution")" = arm64
+          app=$(find "$expanded" -type d -name AmneziaVPN.app -print -quit)
+          test -n "$app"
+          for binary in AmneziaVPN AmneziaVPN-service amneziawg-go; do
+            test "$(lipo -archs "$app/Contents/MacOS/$binary")" = arm64
+          done
+          for resource in geoip.dat geosite.dat pf update-resolv-conf.sh; do
+            test "$(readlink "$app/Contents/MacOS/$resource")" = "../Resources/$resource"
+            test -e "$app/Contents/Resources/$resource"
+          done
+          codesign --verify --deep --strict --all-architectures --verbose=2 "$app"
+          codesign --verify --strict --all-architectures "$app/Contents/PlugIns/platforms/libqcocoa.dylib"
+          QT_QPA_PLATFORM=cocoa "$app/Contents/MacOS/AmneziaVPN" --version
+          sudo /usr/sbin/installer -pkg "${packages[0]}" -target /
+          sudo launchctl print system/AmneziaVPN-service | grep 'state = running'
+          open -a /Applications/AmneziaVPN.app
+          sleep 5
+          pgrep -x AmneziaVPN
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coldwire-macos-unsigned
+          path: deploy/build/*_macos_arm64.pkg
+          if-no-files-found: error
+          retention-days: 7

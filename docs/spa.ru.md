@@ -9,7 +9,7 @@
 | Устройство | Установщик |
 | --- | --- |
 | Windows x64 | `COLDWIRE-Windows-x64.msi` |
-| macOS на Intel или Apple Silicon | `COLDWIRE-macOS.pkg` |
+| macOS на Apple Silicon | `COLDWIRE-macOS.pkg` |
 | Android 9 или 10, ARM64 | `COLDWIRE-Android-9-10-arm64-v8a.apk` |
 | Android 11 и новее, ARM64 | `COLDWIRE-Android-11-plus-arm64-v8a.apk` |
 

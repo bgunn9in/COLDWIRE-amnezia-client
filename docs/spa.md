@@ -9,7 +9,7 @@ Download the installer and `SHA256SUMS.txt` from the same [release](https://gith
 | Device | Installer |
 | --- | --- |
 | Windows x64 | `COLDWIRE-Windows-x64.msi` |
-| macOS on Intel or Apple Silicon | `COLDWIRE-macOS.pkg` |
+| macOS on Apple Silicon | `COLDWIRE-macOS.pkg` |
 | Android 9 or 10, ARM64 | `COLDWIRE-Android-9-10-arm64-v8a.apk` |
 | Android 11 or later, ARM64 | `COLDWIRE-Android-11-plus-arm64-v8a.apk` |
 

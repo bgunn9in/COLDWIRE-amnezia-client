@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   macos:
+    name: macOS Apple Silicon
     if: ${{ !inputs.existing_run && !inputs.windows_only }}
     runs-on: macos-26
     timeout-minutes: 90
@@ -64,15 +65,19 @@ jobs:
           python -m pip install 'conan==2.28.0'
           deploy/build.sh -t macos --generator Ninja --installer productbuild
 
-      - name: Verify signatures and start the packaged client
+      - name: Verify the ARM64 package and start the client
         run: |
           shopt -s nullglob
-          packages=(deploy/build/*.pkg)
+          packages=(deploy/build/*_macos_arm64.pkg)
           test "${#packages[@]}" -eq 1
           expanded="$RUNNER_TEMP/coldwire-package"
           pkgutil --expand-full "${packages[0]}" "$expanded"
+          test "$(xmllint --xpath 'string(/installer-gui-script/options/@hostArchitectures)' "$expanded/Distribution")" = arm64
           app=$(find "$expanded" -type d -name AmneziaVPN.app -print -quit)
           test -n "$app"
+          for binary in AmneziaVPN AmneziaVPN-service amneziawg-go; do
+            test "$(lipo -archs "$app/Contents/MacOS/$binary")" = arm64
+          done
           for resource in geoip.dat geosite.dat pf update-resolv-conf.sh; do
             test "$(readlink "$app/Contents/MacOS/$resource")" = "../Resources/$resource"
             test -e "$app/Contents/Resources/$resource"
@@ -84,7 +89,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: coldwire-macos-unsigned
-          path: deploy/build/*.pkg
+          path: deploy/build/*_macos_arm64.pkg
           if-no-files-found: error
           retention-days: 7
 
@@ -332,7 +337,7 @@ jobs:
         run: |
           shopt -s nullglob
           msi=(installers/coldwire-windows-x64-unsigned/*.msi)
-          pkg=(installers/coldwire-macos-unsigned/*.pkg)
+          pkg=(installers/coldwire-macos-unsigned/*_macos_arm64.pkg)
           apk=(installers/coldwire-android9-10-arm64-test/*.apk)
           modern_apk=(installers/coldwire-android11-plus-arm64/*.apk)
           test "${#msi[@]}:${#pkg[@]}:${#apk[@]}" = '1:1:1'
@@ -369,7 +374,7 @@ jobs:
             fi
           else
             cat > notes.md <<EOF
-          Installers for testing SPA admission with AmneziaWG on Windows x64, macOS (Intel and Apple Silicon), and Android $android_versions on ARM64.
+          Installers for Windows x64, Macs with Apple Silicon, and Android $android_versions on ARM64. All three support SPA with AmneziaWG.
 
           The MSI and PKG are unsigned. The Android APKs use the COLDWIRE release key. Older CI APKs used a different key and need a fresh install.
 

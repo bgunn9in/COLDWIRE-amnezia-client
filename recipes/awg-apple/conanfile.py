@@ -42,6 +42,8 @@ class AwgApple(ConanFile):
             raise ConanInvalidConfiguration(
                 f"{self.name} v{self.version} does not support {self.settings.os}"
             )
+        if self.settings.os == "Macos" and self.settings.arch != "armv8":
+            raise ConanInvalidConfiguration(f"{self.name} on macOS requires Apple Silicon")
 
     def source(self):
         get(self, f"https://github.com/amnezia-vpn/amneziawg-apple/archive/refs/tags/v{self.version}.zip",
