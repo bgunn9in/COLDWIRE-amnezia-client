@@ -14,7 +14,7 @@ DAEMON = ('/var/run/amneziavpn/daemon.socket', '/tmp/amneziavpn.socket')
 
 def route(address):
     output = subprocess.check_output(['/sbin/route', '-n', 'get', '-inet', address], text=True, timeout=4)
-    return dict(re.findall(r'^\s*(destination|gateway|interface):\s+(\S+)', output, flags=re.MULTILINE))
+    return dict(re.findall(r'^\s*(destination|gateway|interface|flags):[ \t]+(\S+)', output, flags=re.MULTILINE))
 
 
 def privileged(*args, **kwargs):
@@ -108,7 +108,7 @@ def main(root):
         set_gateway(gateway, physical)
         selected = route(targets[-1])
         assert selected.get('interface') == physical, selected
-        print(f'Isolated provider route active on {physical}', flush=True)
+        print(f'Isolated provider route active on {physical}: {selected}', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
         modes = [('ru-services', (provider, exit_ip, exit_ip)),

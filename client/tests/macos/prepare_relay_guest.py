@@ -93,6 +93,8 @@ def configure():
     for address in targets:
         netns('cw-mac-observer', 'ip', 'addr', 'add', address + '/32', 'dev', 'lo')
         run('ip', 'route', 'add', address + '/32', 'via', OBSERVER)
+        # The host-only bridge can treat the lab default as on-link.
+        run('ip', 'neigh', 'add', 'proxy', address, 'dev', 'lab0')
     for namespace, command in ((None, f'''
 table ip cw_mac_lab {{
     chain entry {{
