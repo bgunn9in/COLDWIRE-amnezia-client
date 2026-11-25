@@ -31,37 +31,20 @@ on clickVisibleButton(buttonName)
 end clickVisibleButton
 
 on authenticate(installPassword)
+  try
+    my clickVisibleButton("Password")
+  on error
+    return false
+  end try
   tell application "System Events"
-    repeat with processName in {"SecurityAgent", "authorizationhost", "CoreServicesUIAgent", "System Settings", "Installer"}
-      if exists process (contents of processName) then
-        tell process (contents of processName)
-          if (count of windows) > 0 then
-            set widgets to entire contents of window 1
-            repeat with widgetItem in widgets
-              set widget to contents of widgetItem
-              if role of widget is "AXTextField" and subrole of widget is "AXSecureTextField" then
-                set frontmost to true
-                repeat with fieldItem in widgets
-                  set userField to contents of fieldItem
-                  if role of userField is "AXTextField" and subrole of userField is not "AXSecureTextField" then
-                    if value of userField is "runner" or name of userField is "User Name" then
-                      set value of userField to "coldwireqa"
-                      exit repeat
-                    end if
-                  end if
-                end repeat
-                set focused of widget to true
-                keystroke installPassword
-                key code 36
-                return true
-              end if
-            end repeat
-          end if
-        end tell
-      end if
-    end repeat
+    key code 48 using {shift down}
+    keystroke "a" using {command down}
+    keystroke "coldwireqa"
+    key code 48
+    keystroke installPassword
+    key code 36
   end tell
-  return false
+  return true
 end authenticate
 
 on run argv
