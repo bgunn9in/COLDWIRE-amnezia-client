@@ -27,6 +27,14 @@ on authenticate(installPassword)
             repeat with control in entire contents of currentWindow
               if (subrole of control) is "AXSecureTextField" then
                 set frontmost to true
+                repeat with userField in entire contents of currentWindow
+                  if role of userField is "AXTextField" and subrole of userField is not "AXSecureTextField" then
+                    if value of userField is "runner" or name of userField is "User Name" then
+                      set value of userField to "coldwireqa"
+                      exit repeat
+                    end if
+                  end if
+                end repeat
                 set focused of control to true
                 keystroke installPassword
                 key code 36
