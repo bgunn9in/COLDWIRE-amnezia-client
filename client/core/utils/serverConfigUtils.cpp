@@ -4,6 +4,7 @@
 #include <QJsonValue>
 
 #include "core/models/selfhosted/selfHostedAdminServerConfig.h"
+#include "core/utils/coldwireRouting.h"
 #include "core/utils/constants/apiKeys.h"
 #include "core/utils/constants/configKeys.h"
 
@@ -41,7 +42,15 @@ int configFormatVersion(const QJsonObject &serverConfigObject)
 
 bool isConfigFormatVersionSupported(const QJsonObject &serverConfigObject)
 {
-    return configFormatVersion(serverConfigObject) <= currentConfigFormatVersion;
+    const auto version = configFormatVersion(serverConfigObject);
+    const auto routing = serverConfigObject.value(amnezia::coldwireRouting::field);
+    if (routing.isUndefined()) {
+        return version <= currentConfigFormatVersion;
+    }
+    return version == amnezia::coldwireRouting::profileFormatVersion
+           && configTypeFromJson(serverConfigObject) == ConfigType::SelfHostedUser
+           && serverConfigObject.value(amnezia::configKey::defaultContainer).toString() == QStringLiteral("amnezia-awg2")
+           && amnezia::coldwireRouting::isValid(routing.toObject());
 }
 
 bool isServerFromApi(const QJsonObject &serverConfigObject)

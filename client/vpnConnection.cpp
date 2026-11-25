@@ -32,6 +32,7 @@
 #endif
 
 #include "core/utils/networkUtilities.h"
+#include "core/utils/coldwireRouting.h"
 #include "core/utils/serverConfigUtils.h"
 #include "vpnConnection.h"
 
@@ -517,6 +518,17 @@ void VpnConnection::appendSplitTunnelingConfig()
         if (allowedIpsJsonArray.contains("0.0.0.0/0") && allowedIpsJsonArray.contains("::/0")) {
             allowSiteBasedSplitTunneling = true;
         }
+    }
+
+    const auto routing = m_vpnConfiguration.value(amnezia::coldwireRouting::field).toObject();
+    if (!routing.isEmpty()) {
+        const auto prefixes = routing.value(QStringLiteral("ipv4")).toArray();
+        m_vpnConfiguration.insert(configKey::splitTunnelType,
+                                  prefixes.isEmpty() ? amnezia::RouteMode::VpnAllSites : amnezia::RouteMode::VpnAllExceptSites);
+        m_vpnConfiguration.insert(configKey::splitTunnelSites, prefixes);
+        m_vpnConfiguration.insert(configKey::appSplitTunnelType, amnezia::AppsRouteMode::VpnAllApps);
+        m_vpnConfiguration.insert(configKey::splitTunnelApps, QJsonArray{});
+        return;
     }
 
     amnezia::RouteMode routeMode = amnezia::RouteMode::VpnAllSites;

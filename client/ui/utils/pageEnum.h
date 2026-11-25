@@ -53,6 +53,7 @@ namespace PageLoader
 
         PageSetupWizardStart,
         PageSetupWizardCredentials,
+        PageRelayAdministration,
         PageSetupWizardProtocols,
         PageSetupWizardEasy,
         PageSetupWizardProtocolSettings,

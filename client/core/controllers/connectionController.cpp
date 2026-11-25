@@ -9,6 +9,7 @@
 #include "core/utils/payloadSender.h"
 #include "core/utils/utilities.h"
 #include "core/utils/serverConfigUtils.h"
+#include "core/utils/coldwireRouting.h"
 #include "version.h"
 #include "core/utils/containerEnum.h"
 #include "core/utils/containers/containerUtils.h"
@@ -141,6 +142,7 @@ ErrorCode ConnectionController::prepareConnection(const QString &serverId,
     QPair<QString, QString> dns;
     QString hostName;
     QString description;
+    QJsonObject routingPolicy;
     int configVersion = 0;
     bool isApiConfig = false;
 
@@ -166,6 +168,7 @@ ErrorCode ConnectionController::prepareConnection(const QString &serverId,
         dns = cfg->getDnsPair(primaryDns, secondaryDns);
         hostName = cfg->hostName;
         description = cfg->description;
+        routingPolicy = cfg->coldwireRoutingPolicy;
         break;
     }
     case serverConfigUtils::ConfigType::Native: {
@@ -202,6 +205,12 @@ ErrorCode ConnectionController::prepareConnection(const QString &serverId,
 
     vpnConfiguration = createConnectionConfiguration(dns, isApiConfig, hostName, description, configVersion,
                                                      containerConfigModel, container);
+    if (!routingPolicy.isEmpty()) {
+        if (container != DockerContainer::Awg2 || !coldwireRouting::isValid(routingPolicy)) {
+            return ErrorCode::ImportInvalidConfigError;
+        }
+        vpnConfiguration[coldwireRouting::field] = routingPolicy;
+    }
 
     return ErrorCode::NoError;
 }

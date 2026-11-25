@@ -24,6 +24,16 @@ if(WIN32)
 endif()
 
 if(APPLE)
+    if(CPACK_COLDWIRE_ADMIN_HELPER AND CPACK_GENERATOR STREQUAL "productbuild")
+        find_program(COLDWIRE_PACKAGE_PYTHON python3 REQUIRED)
+        foreach(file IN LISTS CPACK_PACKAGE_FILES)
+            execute_process(
+                COMMAND "${COLDWIRE_PACKAGE_PYTHON}"
+                        "${CMAKE_CURRENT_LIST_DIR}/../deploy/verify_macos_admin_package.py" "${file}"
+                COMMAND_ERROR_IS_FATAL ANY
+            )
+        endforeach()
+    endif()
     if(NOTARYTOOL_EMAIL AND NOTARYTOOL_TEAM_ID AND NOTARYTOOL_PASSWORD)
         include(${CMAKE_CURRENT_LIST_DIR}/util/notarytool.cmake)
         foreach(file IN LISTS CPACK_PACKAGE_FILES)

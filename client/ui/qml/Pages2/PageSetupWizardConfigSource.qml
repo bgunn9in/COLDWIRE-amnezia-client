@@ -146,6 +146,19 @@ PageType {
                 Layout.topMargin: 12
                 Layout.rightMargin: 16
                 Layout.leftMargin: 16
+                visible: RelayAdminController.available
+                enabled: !root.isRestoringBackup
+                text: qsTr("COLDWIRE administration")
+                subtitle: qsTr("Install a relay or manage its users")
+                icon.source: "qrc:/images/controls/server.svg"
+                onClicked: PageController.goToPage(PageEnum.PageRelayAdministration)
+            }
+
+            BasicCardType {
+                Layout.fillWidth: true
+                Layout.topMargin: 12
+                Layout.rightMargin: 16
+                Layout.leftMargin: 16
 
                 text: qsTr("Self-hosted VPN")
                 subtitle: qsTr("Set up a VPN on your own server")

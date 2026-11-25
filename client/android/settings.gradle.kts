@@ -38,6 +38,10 @@ include(":openvpn")
 include(":xray")
 include(":xray:libXray")
 
+if (providers.gradleProperty("coldwireAdminBundle").isPresent) {
+    include(":relay-admin")
+}
+
 // get values from gradle or local properties
 val androidBuildToolsVersion: String by gradleProperties
 val androidCompileSdkVersion: String by gradleProperties

@@ -7,6 +7,10 @@ plugins {
     id("property-delegate")
 }
 
+if (providers.gradleProperty("coldwireAdminBundle").isPresent) {
+    dependencies.add("implementation", project(":relay-admin"))
+}
+
 kotlin {
     jvmToolchain(17)
 }

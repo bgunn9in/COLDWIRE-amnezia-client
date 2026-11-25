@@ -214,6 +214,11 @@ QString ServersUiController::getDefaultServerEntryHost() const
     return {};
 }
 
+QString ServersUiController::getDefaultServerColdwireRoutingMode() const
+{
+    return serverDescriptionById(getDefaultServerId()).coldwireRoutingMode;
+}
+
 QString ServersUiController::getDefaultServerImagePathCollapsed() const
 {
     const auto &description = serverDescriptionById(getDefaultServerId());

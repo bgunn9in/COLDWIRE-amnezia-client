@@ -109,6 +109,7 @@ set(SOURCES ${SOURCES}
     ${CLIENT_ROOT_DIR}/core/utils/selfhosted/scriptsRegistry.cpp
     ${CLIENT_ROOT_DIR}/core/utils/qrCodeUtils.cpp
     ${CLIENT_ROOT_DIR}/core/controllers/coreController.cpp
+    ${CLIENT_ROOT_DIR}/ui/controllers/relayAdminUiController.cpp
     ${CLIENT_ROOT_DIR}/core/controllers/coreSignalHandlers.cpp
     ${CLIENT_ROOT_DIR}/core/controllers/gatewayController.cpp
     ${CLIENT_ROOT_DIR}/core/utils/selfhosted/sshSession.cpp

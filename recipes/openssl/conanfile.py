@@ -10,6 +10,8 @@ from conan.tools.scm import Version
 
 import fnmatch
 import os
+from pathlib import Path
+import re
 import textwrap
 
 required_conan_version = ">=1.57.0"
@@ -530,6 +532,19 @@ class OpenSSLConan(ConanFile):
                         replace_in_file(self, mkinstallvars_pl, "$values{$k} = $v;", """$v->[0] =~ s|\\\\|/|g; $values{$k} = $v;""")
                     else:
                         replace_in_file(self, mkinstallvars_pl, "$ENV{$k} = $v;", """$v =~ s|\\\\|/|g; $ENV{$k} = $v;""")
+            if self.settings.os == "Android" and self.settings_build.os == "Windows" and self.options.shared:
+                # The Android compiler's .cmd launcher cannot accept the expanded shared-library link command.
+                makefile = Path("Makefile")
+                text = makefile.read_text(encoding="utf-8")
+                drives = sorted(set(re.findall(r"-L/([a-zA-Z])/", text)))
+                for library in ("libcrypto_3.so", "libssl_3.so"):
+                    pattern = rf"^\t\$\(CC\) (?=[^\n]*-Wl,-soname={re.escape(library)}\s).*\\\n(?:[^\n]*\\\n)*[^\n]*"
+                    command, = re.findall(pattern, text, re.MULTILINE)
+                    arguments = re.sub(r" *\\\n\s*", " ", command.removeprefix("\t$(CC) "))
+                    for drive in drives:
+                        arguments = f"$(subst -L/{drive}/,-L{drive.upper()}:/,{arguments})"
+                    text = text.replace(command, f"\t$(file >{library}.rsp,{arguments})\n\t$(CC) @{library}.rsp", 1)
+                makefile.write_text(text, encoding="utf-8", newline="\n")
             self._run_make()
 
     def _make_install(self):

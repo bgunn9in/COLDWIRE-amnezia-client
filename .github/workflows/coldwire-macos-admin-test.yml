@@ -1,0 +1,151 @@
+name: COLDWIRE macOS administration test
+
+on:
+  push:
+    branches: [test/macos-relay-admin]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 110
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '12.0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: bgunn9in/coldwire
+          ref: 57d7517401ae246e89e7e9e8ed2ff17fdcabcf2e
+          path: admin-panel
+          persist-credentials: false
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3.0'
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.27.4'
+          cache: false
+
+      - name: Install universal Python
+        run: |
+          python_pkg="$RUNNER_TEMP/python-3.14.10-macos11.pkg"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://www.python.org/ftp/python/3.14.10/python-3.14.10-macos11.pkg \
+            --output "$python_pkg"
+          printf '%s  %s\n' 286c7018aa2730f6747ca433dccdc2b31be45f078a9ea0ffa44d5f06368fd2d7 "$python_pkg" | shasum -a 256 -c -
+          sudo installer -pkg "$python_pkg" -target /
+          python=/Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14
+          lipo "$python" -verify_arch arm64 x86_64
+          "$python" -m venv "$RUNNER_TEMP/coldwire-python"
+          echo "$RUNNER_TEMP/coldwire-python/bin" >> "$GITHUB_PATH"
+
+      - name: Build OpenSSL for both architectures
+        run: |
+          work="$RUNNER_TEMP/coldwire-openssl"
+          mkdir -p "$work"
+          cd "$work"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://www.openssl.org/source/openssl-4.0.3.tar.gz -o openssl-4.0.3.tar.gz
+          printf '%s  %s\n' 325b5c806167c13b40b1ffeadfe0248197c00eccc4cf123ec1e28d2d2fd216d9 openssl-4.0.3.tar.gz | shasum -a 256 -c -
+          tar -xzf openssl-4.0.3.tar.gz
+          for arch in arm64 x86_64; do
+            mkdir "build-$arch"
+            (
+              cd "build-$arch"
+              perl "$work/openssl-4.0.3/Configure" "darwin64-$arch-cc" no-shared no-tests \
+                --prefix="$work/$arch" --libdir=lib
+              make -s -j "$(sysctl -n hw.ncpu)" build_libs
+              make -s install_dev
+            )
+            lipo "$work/$arch/lib/libcrypto.a" -verify_arch "$arch"
+          done
+
+      - name: Build universal Python dependencies
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          python -m pip install 'setuptools>=80' wheel 'maturin>=1.14.1,<2'
+          ARCHFLAGS="-arch arm64 -arch x86_64" _PYTHON_HOST_PLATFORM=macosx-12.0-universal2 \
+            python -m pip install --no-binary=cffi cffi==2.1.1
+          export OPENSSL_STATIC=1
+          export AARCH64_APPLE_DARWIN_OPENSSL_DIR="$RUNNER_TEMP/coldwire-openssl/arm64"
+          export X86_64_APPLE_DARWIN_OPENSSL_DIR="$RUNNER_TEMP/coldwire-openssl/x86_64"
+          wheels="$RUNNER_TEMP/coldwire-wheels"
+          python -m pip wheel --no-build-isolation --no-deps --no-binary=cryptography \
+            --config-settings=build-args="--target universal2-apple-darwin" \
+            --wheel-dir "$wheels" cryptography==50.0.2
+          python -m pip install "$wheels"/cryptography-*.whl
+          python -m pip install --only-binary=:all: --requirement admin-panel/requirements-deploy.txt \
+            pyinstaller==6.22.3 conan==2.28.0
+          python -m pip check
+          python - <<'PY'
+          import subprocess
+          import _cffi_backend
+          import bcrypt._bcrypt
+          import cryptography.hazmat.bindings._rust
+          import nacl._sodium
+          for module in (_cffi_backend, bcrypt._bcrypt, cryptography.hazmat.bindings._rust, nacl._sodium):
+              subprocess.run(['lipo', module.__file__, '-verify_arch', 'arm64', 'x86_64'], check=True)
+              print(f'Verified both architectures in {module.__name__}', flush=True)
+          PY
+
+      - name: Build and test the administration helper
+        run: |
+          spa="$RUNNER_TEMP/coldwire-spa-linux-amd64"
+          (
+            cd admin-panel/servers/spa
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o "$spa" .
+          )
+          (
+            cd admin-panel
+            python -m unittest discover -s tests -p test_client_admin_helper.py
+            python scripts/build_admin_helper.py --output "$RUNNER_TEMP/coldwire-helper" --spa-binary "$spa"
+          )
+          helper="$RUNNER_TEMP/coldwire-helper/coldwire-admin-helper"
+          lipo "$helper" -verify_arch arm64 x86_64
+          codesign --verify --strict --all-architectures "$helper"
+          python - "$helper" <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+          import sys
+          from tempfile import TemporaryDirectory
+          with TemporaryDirectory() as directory:
+              result = subprocess.run([sys.argv[1], '--state', Path(directory) / 'operator.bin'],
+                                      input=json.dumps({'action': 'state', 'stateKey': '0' * 64}),
+                                      text=True, capture_output=True, check=True, timeout=45)
+              assert json.loads(result.stdout) == {'ok': True, 'installed': False}
+          PY
+          echo "COLDWIRE_ADMIN_HELPER=$helper" >> "$GITHUB_ENV"
+
+      - uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: '6.10.1'
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: qtremoteobjects qt5compat qtshadertools qthttpserver qtwebsockets
+          dir: ${{ runner.temp }}
+          aqtversion: '==3.3.0'
+          set-env: true
+
+      - name: Build and verify the macOS package
+        env:
+          QT_INSTALL_DIR: ${{ runner.temp }}
+        run: deploy/build.sh -t macos --generator Ninja --installer productbuild
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: coldwire-macos-admin-test
+          path: deploy/build/*.pkg
+          if-no-files-found: error
+          retention-days: 7

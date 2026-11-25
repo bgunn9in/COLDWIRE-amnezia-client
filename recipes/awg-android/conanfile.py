@@ -74,6 +74,9 @@ class AwgAndroid(ConanFile):
                 'shasum -a 256 -c'
             )
         elif platform.system() == 'Windows':
+            tools = Path(self.source_folder) / "tunnel" / "tools"
+            for source in (tools / "CMakeLists.txt", tools / "libwg-go" / "Makefile"):
+                source.write_bytes(source.read_bytes().replace(b"\r\n", b"\n"))
             # elf-cleaner uses sys/mman.h (POSIX only) and cannot be built on Windows;
             # skip it — DT_FLAGS_1 warnings only affect Android < 6.0
             replace_in_file(self,

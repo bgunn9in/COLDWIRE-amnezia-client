@@ -12,6 +12,7 @@
 #include "logger.h"
 #include "secureQSettings.h"
 #include "core/utils/appUiConfig.h"
+#include "ui/controllers/relayAdminUiController.h"
 
 #if defined(Q_OS_ANDROID)
     #include "core/utils/installedAppsImageProvider.h"
@@ -184,6 +185,7 @@ void CoreController::initCoreControllers()
 
 void CoreController::initControllers()
 {
+    setQmlContextProperty("RelayAdminController", new RelayAdminUiController(this));
     m_connectionUiController = new ConnectionUiController(m_connectionController, m_serversController, this);
     setQmlContextProperty("ConnectionController", m_connectionUiController);
 

@@ -264,6 +264,29 @@ install(TARGETS ${PROJECT}
     COMPONENT AmneziaVPN
 )
 
+set(COLDWIRE_ADMIN_HELPER "" CACHE FILEPATH "Packaged desktop COLDWIRE administration helper")
+if(COLDWIRE_ADMIN_HELPER AND NOT ANDROID AND NOT IOS)
+    set(admin_helper_name "coldwire-admin-helper${CMAKE_EXECUTABLE_SUFFIX}")
+    set(admin_helper_dir ${CMAKE_INSTALL_BINDIR})
+    if(APPLE)
+        find_program(COLDWIRE_LIPO lipo REQUIRED)
+        execute_process(
+            COMMAND "${COLDWIRE_LIPO}" "${COLDWIRE_ADMIN_HELPER}" -verify_arch ${CMAKE_OSX_ARCHITECTURES}
+            RESULT_VARIABLE admin_helper_arch_status
+        )
+        if(NOT admin_helper_arch_status STREQUAL "0")
+            message(FATAL_ERROR "COLDWIRE_ADMIN_HELPER must support all macOS client architectures: ${CMAKE_OSX_ARCHITECTURES}")
+        endif()
+        set(admin_helper_dir "${CMAKE_INSTALL_BINDIR}/AmneziaVPN.app/Contents/MacOS")
+    endif()
+    add_custom_command(TARGET ${PROJECT} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${COLDWIRE_ADMIN_HELPER}"
+                "$<TARGET_FILE_DIR:${PROJECT}>/${admin_helper_name}"
+        VERBATIM)
+    install(PROGRAMS "${COLDWIRE_ADMIN_HELPER}" DESTINATION "${admin_helper_dir}"
+        RENAME "${admin_helper_name}" COMPONENT AmneziaVPN)
+endif()
+
 if(APPLE)
     set(RUNTIME_DEPS_DIR ${CMAKE_INSTALL_BINDIR}/AmneziaVPN.app/Contents/Frameworks)
 else()

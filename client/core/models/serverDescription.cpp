@@ -107,6 +107,7 @@ ServerDescription buildServerDescription(const SelfHostedAdminServerConfig &serv
 ServerDescription buildServerDescription(const SelfHostedUserServerConfig &server, bool isAmneziaDnsEnabled)
 {
     ServerDescription row = buildBaseDescription(server);
+    row.coldwireRoutingMode = server.coldwireRoutingPolicy.value(QStringLiteral("mode")).toString();
     row.selfHostedSshCredentials.hostName = server.hostName;
     row.selfHostedSshCredentials.port = 22;
     row.hasWriteAccess = false;

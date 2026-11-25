@@ -10,6 +10,7 @@
 #include "core/utils/containers/containerUtils.h"
 #include "core/utils/protocolEnum.h"
 #include "core/utils/networkUtilities.h"
+#include "core/utils/coldwireRouting.h"
 
 namespace amnezia
 {
@@ -67,7 +68,12 @@ QPair<QString, QString> SelfHostedUserServerConfig::getDnsPair(const QString &pr
 QJsonObject SelfHostedUserServerConfig::toJson() const
 {
     QJsonObject obj;
-    obj[configKey::formatVersion] = serverConfigUtils::currentConfigFormatVersion;
+    if (coldwireRoutingPolicy.isEmpty()) {
+        obj[configKey::formatVersion] = serverConfigUtils::currentConfigFormatVersion;
+    } else {
+        obj[configKey::formatVersion] = coldwireRouting::profileFormatVersion;
+        obj[coldwireRouting::field] = coldwireRoutingPolicy;
+    }
 
     if (!description.isEmpty()) {
         obj[configKey::description] = this->description;
@@ -122,6 +128,7 @@ SelfHostedUserServerConfig SelfHostedUserServerConfig::fromJson(const QJsonObjec
 
     config.dns1 = json.value(configKey::dns1).toString();
     config.dns2 = json.value(configKey::dns2).toString();
+    config.coldwireRoutingPolicy = json.value(coldwireRouting::field).toObject();
 
     if (config.displayName.isEmpty()) {
         config.displayName = config.description.isEmpty() ? config.hostName : config.description;

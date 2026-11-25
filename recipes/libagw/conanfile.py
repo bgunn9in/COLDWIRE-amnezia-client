@@ -9,6 +9,7 @@ from conan.tools.env import Environment
 
 import os
 import shlex
+import subprocess
 
 
 class Libagw(ConanFile):
@@ -113,9 +114,10 @@ class Libagw(ConanFile):
         env.define("CGO_CFLAGS", " ".join(cflags))
         env.define("CGO_LDFLAGS", " ".join(ldflags))
         go_ldflags = " ".join(filter(None, ["-s -w", goldflags]))
+        output_arg = subprocess.list2cmdline([output]) if os.name == 'nt' else shlex.quote(output)
         with env.vars(self).apply():
             self.run(f'go build -buildmode={buildmode} -ldflags="{go_ldflags}" '
-                     f'-o {shlex.quote(output)} ./archive')
+                     f'-o {output_arg} ./archive')
 
     def build(self):
         with chdir(self, self.source_folder):

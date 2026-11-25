@@ -11,6 +11,7 @@
 #include "core/models/selfhosted/selfHostedAdminServerConfig.h"
 #include "core/models/selfhosted/selfHostedUserServerConfig.h"
 #include "core/utils/constants/configKeys.h"
+#include "core/utils/coldwireRouting.h"
 #include "core/utils/serverConfigUtils.h"
 #include "secureQSettings.h"
 #include "vpnConnection.h"
@@ -100,6 +101,43 @@ private slots:
         ApiV2ServerConfig api;
         api.hostName = "1.1.1.1";
         QCOMPARE(api.toJson().value(configKey::formatVersion).toInt(-1), serverConfigUtils::currentConfigFormatVersion);
+    }
+
+    void testColdwireRoutingSurvivesImportAndStorage()
+    {
+        QJsonObject profile{
+            {configKey::formatVersion, coldwireRouting::profileFormatVersion},
+            {configKey::hostName, QStringLiteral("192.0.2.10")},
+            {configKey::defaultContainer, QStringLiteral("amnezia-awg2")},
+            {configKey::containers, QJsonArray{QJsonObject{
+                 {configKey::container, QStringLiteral("amnezia-awg2")},
+                 {configKey::awg, QJsonObject{{configKey::lastConfig, QStringLiteral("{\"hostName\":\"192.0.2.10\",\"client_ip\":\"10.8.1.2\"}")}}},
+            }}},
+            {coldwireRouting::field, QJsonObject{
+                 {QStringLiteral("version"), 1},
+                 {QStringLiteral("mode"), QStringLiteral("ru-services")},
+                 {QStringLiteral("ipv4"), QJsonArray{QStringLiteral("198.51.100.0/24")}},
+            }},
+        };
+        auto *importController = m_coreController->m_importCoreController;
+        const QByteArray payload = qCompress(QJsonDocument(profile).toJson(QJsonDocument::Compact), 8);
+        const auto result = importController->extractConfigFromData(
+                QStringLiteral("vpn://") + QString::fromLatin1(payload.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals)));
+        QCOMPARE(result.errorCode, ErrorCode::NoError);
+        QCOMPARE(SelfHostedUserServerConfig::fromJson(result.config).toJson().value(coldwireRouting::field),
+                 profile.value(coldwireRouting::field));
+
+        const auto original = profile;
+        profile[configKey::userName] = QStringLiteral("test");
+        profile[configKey::password] = QStringLiteral("dummy");
+        profile[configKey::port] = 22;
+        QVERIFY(!serverConfigUtils::isConfigFormatVersionSupported(profile));
+
+        auto invalid = original.value(coldwireRouting::field).toObject();
+        invalid[QStringLiteral("ipv4")] = QJsonArray{QStringLiteral("0.0.0.0/0")};
+        profile = original;
+        profile[coldwireRouting::field] = invalid;
+        QVERIFY(!serverConfigUtils::isConfigFormatVersionSupported(profile));
     }
 
     void testImportAcceptsMissingAndCurrentVersion()

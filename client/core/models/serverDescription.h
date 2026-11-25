@@ -52,6 +52,7 @@ struct ServerDescription
 
     QString collapsedServerDescription;
     QString expandedServerDescription;
+    QString coldwireRoutingMode;
 };
 
 ServerDescription buildServerDescription(const SelfHostedAdminServerConfig &server, bool isAmneziaDnsEnabled);

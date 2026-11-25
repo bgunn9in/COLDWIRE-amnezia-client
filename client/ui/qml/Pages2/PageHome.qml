@@ -171,21 +171,32 @@ PageType {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    readonly property bool siteSplitEnabled: IpSplitTunnelingController.isSplitTunnelingEnabled
-                    readonly property bool directSites: siteSplitEnabled && IpSplitTunnelingController.routeMode === 2
-                    readonly property bool splitEnabled: siteSplitEnabled || AppSplitTunnelingController.isSplitTunnelingEnabled
-                                                         || ServersUiController.isDefaultServerDefaultContainerHasSplitTunneling
+                    readonly property string managedRouting: ServersUiController.defaultServerColdwireRoutingMode
+                    readonly property bool siteSplitEnabled: managedRouting === ""
+                                                            ? IpSplitTunnelingController.isSplitTunnelingEnabled : managedRouting !== "all"
+                    readonly property bool directSites: siteSplitEnabled && (managedRouting !== "" || IpSplitTunnelingController.routeMode === 2)
+                    readonly property bool splitEnabled: siteSplitEnabled || (managedRouting === "" && (
+                                                         AppSplitTunnelingController.isSplitTunnelingEnabled
+                                                         || ServersUiController.isDefaultServerDefaultContainerHasSplitTunneling))
 
                     overline: qsTranslate("HomeSplitTunnelingDrawer", "Split tunneling")
                     text: siteSplitEnabled ? (directSites ? qsTranslate("PageSettingsSplitTunneling", "Directly")
                                                           : qsTranslate("PageSettingsSplitTunneling", "Via VPN"))
                                            : (splitEnabled ? qsTranslate("HomeSplitTunnelingDrawer", "Enabled")
                                                            : qsTranslate("HomeSplitTunnelingDrawer", "Disabled"))
-                    subtitle: siteSplitEnabled ? qsTr("Listed sites") : ""
+                    subtitle: {
+                        if (managedRouting === "ru-services") return qsTr("Russian services · profile rule")
+                        if (managedRouting === "ru-direct") return qsTr("Extended Russian list · profile rule")
+                        if (managedRouting === "all") return qsTr("All traffic through VPN · profile rule")
+                        return siteSplitEnabled ? qsTr("Listed sites") : ""
+                    }
                     titleColor: directSites ? AmneziaStyle.color.statusWarning : AmneziaStyle.color.textPrimary
-                    trailingIconSource: "qrc:/images/controls/chevron-right.svg"
+                    trailingIconSource: managedRouting === "" ? "qrc:/images/controls/chevron-right.svg" : ""
+                    interactive: managedRouting === ""
 
-                    onClicked: homeSplitTunnelingDrawer.open()
+                    onClicked: {
+                        if (managedRouting === "") homeSplitTunnelingDrawer.open()
+                    }
                 }
             }
 

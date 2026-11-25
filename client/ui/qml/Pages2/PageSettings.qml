@@ -67,6 +67,17 @@ PageType {
                 Layout.fillWidth: true
                 Layout.leftMargin: 16
                 Layout.rightMargin: 16
+                visible: RelayAdminController.available
+                text: qsTr("COLDWIRE administration")
+                icon.source: "qrc:/images/controls/server.svg"
+                trailingIconSource: "qrc:/images/controls/chevron-right.svg"
+                onClicked: PageController.goToPage(PageEnum.PageRelayAdministration)
+            }
+
+            ListItemType {
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
 
                 text: qsTr("Connection")
                 icon.source: "qrc:/images/controls/radio.svg"

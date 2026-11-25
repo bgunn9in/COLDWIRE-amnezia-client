@@ -25,6 +25,7 @@ struct SelfHostedUserServerConfig {
     DockerContainer defaultContainer;
     QString dns1;
     QString dns2;
+    QJsonObject coldwireRoutingPolicy;
 
     bool hasCredentials() const;
     bool isReadOnly() const;
