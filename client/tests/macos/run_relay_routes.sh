@@ -10,8 +10,11 @@ guest_root=/opt/coldwire-mac-test
 
 finish() {
     local result=$?
-    if [ -n "${lab_if:-}" ] && [ -f "$work/gateway-restored" ]; then
-        sudo -n /sbin/ifconfig "$lab_if" destroy || true
+    if [ -n "${lab_if:-}" ] &&
+        default_if=$(/sbin/route -n get -inet default | awk '$1 == "interface:" { print $2 }') &&
+        [ -n "$default_if" ] && [ "$default_if" != "$lab_if" ]; then
+        sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 -alias || true
+        sudo -n /sbin/ifconfig "$lab_if" -tunnel mtu "$gif_mtu" down || true
     fi
     if [ "$result" -ne 0 ] && [ -f "$work/guest.log" ]; then
         sudo -n tail -n 55 "$work/guest.log" | sed -E 's/ssh-ed25519 [A-Za-z0-9+\/=]+/[test SSH public key]/g' || true
@@ -21,6 +24,14 @@ finish() {
     fi
 }
 trap finish EXIT
+
+gif_status=$(/sbin/ifconfig gif0)
+if grep -Eq '^[[:space:]]+(tunnel|inet6?)[[:space:]]|(<|,)UP(,|>)' <<< "$gif_status"; then
+    printf 'The runner already uses gif0:\n%s\n' "$gif_status" >&2
+    exit 1
+fi
+gif_mtu=$(awk 'NR == 1 { for (i = 1; i < NF; ++i) if ($i == "mtu") print $(i + 1) }' <<< "$gif_status")
+[[ "$gif_mtu" =~ ^[0-9]+$ ]]
 
 command -v qemu-system-x86_64 >/dev/null || brew install qemu
 qemu=$(command -v qemu-system-x86_64)
@@ -104,10 +115,10 @@ umask 077
 outer_if=$(/sbin/route -n get -inet 192.168.91.2 | awk '$1 == "interface:" { print $2 }')
 [[ "$outer_if" =~ ^bridge[0-9]+$ ]]
 /sbin/ifconfig "$outer_if" | grep -q 'inet 192\.168\.91\.1 '
-lab_if=$(sudo -n /sbin/ifconfig gif create)
-[[ "$lab_if" =~ ^gif[0-9]+$ ]]
+lab_if=gif0
 sudo -n /sbin/ifconfig "$lab_if" tunnel 192.168.91.1 192.168.91.2
 sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 192.168.94.2 netmask 255.255.255.255 mtu 1480 up
+/sbin/ifconfig "$lab_if"
 
 "${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i cwpath0 -c 150 'icmp or tcp port 18080 or udp port 32497'; fi"
 if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if"; then
