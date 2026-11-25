@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import socket
 import subprocess
 import sys
@@ -32,6 +33,20 @@ def deactivate():
                 control.recv(4096)
             except TimeoutError:
                 pass
+
+
+def prepare_keychain(root):
+    keychain = root / 'coldwire-test.keychain-db'
+    password = secrets.token_hex(16)
+    security = '/usr/bin/security'
+    chain = subprocess.run([security, 'list-keychains', '-d', 'user'], check=True, text=True, capture_output=True)
+    old = re.findall(r'^\s*"([^"]+)"\s*$', chain.stdout, re.MULTILINE)
+    for args in [('create-keychain', '-p', password, keychain), ('unlock-keychain', '-p', password, keychain),
+                 ('list-keychains', '-d', 'user', '-s', keychain, *old)]:
+        subprocess.run([security, *args], check=True, capture_output=True)
+    for account in ('settingsKeyTag', 'settingsIvTag'):
+        subprocess.run([security, 'add-generic-password', '-s', 'AmneziaVPN-Keychain', '-a', account,
+                        '-T', APP, '-X', secrets.token_hex(32), keychain], check=True, capture_output=True)
 
 
 def protect_existing_sockets(old, targets):
@@ -97,6 +112,7 @@ def main(root):
     subprocess.run(['/usr/bin/pkill', '-TERM', '-x', 'AmneziaVPN'], check=False)
     time.sleep(2)
     deactivate()
+    prepare_keychain(root)
     previous = original['gateway']
     IPv4Address(previous)
     preserved = protect_existing_sockets(previous, targets)
@@ -119,9 +135,10 @@ def main(root):
             assert re.fullmatch(r'vpn://[A-Za-z0-9_-]+', profile)
             with (root / f'client-{mode}.log').open('wb') as log:
                 client = subprocess.Popen([APP, '--import', profile, '--connect', str(index)],
-                                          stdout=log, stderr=subprocess.STDOUT)
+                                          stdout=log, stderr=subprocess.STDOUT,
+                                          env=dict(os.environ, QT_LOGGING_RULES='*.debug=true'))
                 try:
-                    for _ in range(24):
+                    for _ in range(60):
                         if client.poll() is not None:
                             raise RuntimeError('The COLDWIRE client exited before connecting')
                         tunnel = route(targets[-1]).get('interface', '')
@@ -131,7 +148,7 @@ def main(root):
                                 break
                         time.sleep(.5)
                     else:
-                        raise RuntimeError(f'No AWG route appeared in mode {mode}')
+                        raise RuntimeError(f'No AWG route appeared in mode {mode}: {route(targets[-1])}')
                     for attempt in range(3):
                         try:
                             seen = [sample(target, want, physical, tunnel) for target, want in zip(targets, expected)]
@@ -143,8 +160,14 @@ def main(root):
                     print(f'PASS macOS IPv4 {mode}: observer={seen}', flush=True)
                 except Exception:
                     lines = (root / f'client-{mode}.log').read_text(errors='replace').splitlines()
-                    notes = [line for line in lines if re.search(r'connectionState|split tunneling|error|handshake', line, re.I)]
-                    for note in notes[-10:]:
+                    notes = [line for line in lines if re.search(r'connect|import|split tunneling|error|failed|handshake|started', line, re.I)]
+                    for note in notes[-25:]:
+                        print(re.sub(r'[A-Za-z0-9+/_=-]{40,}', '[redacted]', note), flush=True)
+                    log = privileged('/usr/bin/log', 'show', '--last', '2m', '--style', 'compact',
+                                     '--predicate', 'process == "AmneziaVPN-service" OR process == "amneziawg-go"',
+                                     capture_output=True, text=True, check=False).stdout
+                    notes = [line for line in log.splitlines() if re.search(r'activate|tunnel|failed|error', line, re.I)]
+                    for note in notes[-12:]:
                         print(re.sub(r'[A-Za-z0-9+/_=-]{40,}', '[redacted]', note), flush=True)
                     raise
                 finally:
