@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [macos-15, macos-26]
+        image: [macos-15, macos-latest]
     runs-on: ${{ matrix.image }}
     timeout-minutes: 32
     steps:
@@ -23,8 +23,8 @@ jobs:
 
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
-          name: coldwire-macos-unsigned-macos-15
-          run-id: 45687306192
+          name: coldwire-macos-unsigned
+          run-id: 45708799991
           path: installer
           github-token: ${{ github.token }}
 
@@ -35,7 +35,8 @@ jobs:
           sw_vers
           package=(installer/*_macos_arm64.pkg)
           test "${#package[@]}" -eq 1
-          printf '%s  %s\n' 386936ba224d7ce2574021e63d0d1df0a96a2032756125365533361504a325f4 "${package[0]}" | shasum -a 256 -c -
+          test ! -d /Applications/AmneziaVPN.app
+          printf '%s  %s\n' 16924a3d3bfb213b7574393569444774d153644409642d3793107d620ec4b884 "${package[0]}" | shasum -a 256 -c -
           if ! sudo /usr/sbin/installer -dumplog -verboseR -pkg "${package[0]}" -target /; then
             sudo tail -n 75 /var/log/install.log || true
             sudo tail -n 60 /var/log/AmneziaVPN/post-install.log || true
