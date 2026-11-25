@@ -53,10 +53,16 @@ jobs:
           dscl . -authonly coldwireqa "$COLDWIRE_TEST_PASSWORD"
           id -Gn coldwireqa | grep -qw admin
           export COLDWIRE_TEST_PASSWORD
+          (
+            sleep 30
+            screencapture -x "$RUNNER_TEMP/finder-progress.png" || true
+          ) &
+          watcher=$!
           if ! osascript "$RUNNER_TEMP/finder.scpt" "$downloaded"; then
             screencapture -x "$RUNNER_TEMP/finder-stop.png" || true
             exit 1
           fi
+          kill "$watcher" 2>/dev/null || true
           unset COLDWIRE_TEST_PASSWORD
           sudo -n /bin/launchctl print system/AmneziaVPN-service | grep 'state = running'
           lipo -archs /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN | grep -x arm64
@@ -67,6 +73,6 @@ jobs:
         if: failure()
         with:
           name: coldwire-finder-macos-${{ matrix.version }}
-          path: ${{ runner.temp }}/finder-stop.png
+          path: ${{ runner.temp }}/finder-*.png
           if-no-files-found: ignore
           retention-days: 7

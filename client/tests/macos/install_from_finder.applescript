@@ -82,7 +82,8 @@ on run argv
     if my pressButton("System Settings", {"Open Anyway", "Open Anyway…"}) is "" then my clickVisibleButton("Open Anyway")
     log "Requested approval for the candidate package"
 
-    repeat 28 times
+    set deadline to (current date) + 95
+    repeat while (current date) is less than deadline
       set chosen to my pressButton("Installer", {"Close"})
       if chosen is not "" then return "Installer completed"
       if my authenticate(installPassword) then
@@ -97,7 +98,9 @@ on run argv
     end repeat
 
     tell application "System Events"
-      repeat with processName in {"Installer", "CoreServicesUIAgent", "SecurityAgent", "System Settings"}
+      set activeNames to name of every application process whose frontmost is true
+      log activeNames
+      repeat with processName in {"Installer", "CoreServicesUIAgent", "SecurityAgent", "authorizationhost", "System Settings"}
         if exists process (contents of processName) then
           tell process (contents of processName)
             log {name, name of windows, name of buttons of windows}
