@@ -131,18 +131,17 @@ def import_profile(root):
             stop_client(client)
 
 
-def main(root):
+def main(root, physical):
     assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
     lab = json.loads((root / 'lab.json').read_text())
     provider, exit_ip, gateway = lab['provider'], lab['exit'], lab['gateway']
-    assert (provider, exit_ip, gateway) == ('192.168.91.1', '192.168.92.2', '192.168.91.2')
+    assert (provider, exit_ip, gateway) == ('192.168.94.1', '192.168.92.2', '192.168.94.2')
     targets = tuple(lab['targets'])
     assert len(set(targets)) == 3
     for address in targets:
         IPv4Address(address)
     original = route('default')
-    physical = route(gateway)['interface']
-    assert physical != original['interface']
+    assert re.fullmatch(r'gif\d+', physical) and route(gateway)['interface'] == physical
     assert f'inet {provider} ' in subprocess.check_output(['/sbin/ifconfig', physical], text=True), physical
     subprocess.run(['/sbin/ping', '-c', '1', '-W', '1800', gateway], check=True, timeout=5)
 
@@ -163,7 +162,7 @@ def main(root):
     try:
         set_gateway(gateway, physical, provider)
         selected = route(targets[-1])
-        assert selected.get('interface') == physical, selected
+        assert (selected.get('interface'), selected.get('gateway')) == (physical, gateway), selected
         print(f'Isolated provider route active on {physical}: {selected}', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
@@ -171,9 +170,6 @@ def main(root):
                  ('ru-services', (provider, exit_ip, exit_ip)),
                  ('ru-direct', (provider, provider, exit_ip))]
         for mode, expected in modes:
-            for target in targets:
-                # Forget the host-only bridge's ARP clones before new routes are installed.
-                privileged('/usr/sbin/arp', '-d', target, 'ifscope', physical, capture_output=True)
             enabled = mode != 'all'
             if enabled:
                 rows = json.loads((Path('admin-panel') / f'{mode}.amnezia.json').read_text())
@@ -246,8 +242,8 @@ if __name__ == '__main__':
     if sys.argv[1] == '--restore':
         assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
         marker = Path(sys.argv[4])
-        time.sleep(250)
+        time.sleep(360)
         if not marker.exists():
             restore_gateway(sys.argv[2], sys.argv[3], marker)
     else:
-        main(Path(sys.argv[1]))
+        main(Path(sys.argv[1]), sys.argv[2])

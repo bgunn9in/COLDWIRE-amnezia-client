@@ -10,6 +10,9 @@ guest_root=/opt/coldwire-mac-test
 
 finish() {
     local result=$?
+    if [ -n "${lab_if:-}" ] && [ -f "$work/gateway-restored" ]; then
+        sudo -n /sbin/ifconfig "$lab_if" destroy || true
+    fi
     if [ "$result" -ne 0 ] && [ -f "$work/guest.log" ]; then
         sudo -n tail -n 55 "$work/guest.log" | sed -E 's/ssh-ed25519 [A-Za-z0-9+\/=]+/[test SSH public key]/g' || true
     fi
@@ -98,17 +101,16 @@ if ! "${guest[@]}" "sudo /usr/bin/python3 $guest_root/prepare.py"; then
 fi
 umask 077
 "${guest[@]}" "sudo tar -C $guest_root -cf - lab.json client.vpn" | tar -xf - -C "$work"
-arp_filter=$(python3 - "$work/lab.json" <<'PY'
-from ipaddress import IPv4Address
-import json
-from pathlib import Path
-import sys
-data = json.loads(Path(sys.argv[1]).read_text())
-print(' or '.join(f'host {IPv4Address(ip)}' for ip in [*data['targets'], data['entry']]))
-PY
-)
-"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i lab0 -c 150 '(arp and ($arp_filter)) or tcp port 18080 or udp port 32497'; fi"
-if ! python3 "$test_path/check_relay_routes.py" "$work"; then
-    "${guest[@]}" 'ip -s link show lab0; ip neigh show proxy dev lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer --no-pager -n 70' || true
+outer_if=$(/sbin/route -n get -inet 192.168.91.2 | awk '$1 == "interface:" { print $2 }')
+[[ "$outer_if" =~ ^bridge[0-9]+$ ]]
+/sbin/ifconfig "$outer_if" | grep -q 'inet 192\.168\.91\.1 '
+lab_if=$(sudo -n /sbin/ifconfig gif create)
+[[ "$lab_if" =~ ^gif[0-9]+$ ]]
+sudo -n /sbin/ifconfig "$lab_if" tunnel 192.168.91.1 192.168.91.2
+sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 192.168.94.2 netmask 255.255.255.255 mtu 1480 up
+
+"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i cwpath0 -c 150 'icmp or tcp port 18080 or udp port 32497'; fi"
+if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if"; then
+    "${guest[@]}" 'ip -s link show cwpath0; ip -s link show lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer --no-pager -n 70' || true
     exit 1
 fi

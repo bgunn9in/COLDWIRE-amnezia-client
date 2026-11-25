@@ -13,9 +13,9 @@ import time
 ROOT = Path('/opt/coldwire-mac-test')
 PANEL = ROOT / 'panel'
 TOOLS = ROOT / 'tools'
-GATEWAY = '192.168.91.2'
-ENTRY = '192.168.91.4'
-PROVIDER = '192.168.91.1'
+GATEWAY = '192.168.94.2'
+ENTRY = '192.168.94.4'
+PROVIDER = '192.168.94.1'
 EXIT = '192.168.92.2'
 OBSERVER = '192.168.93.2'
 NAMESPACE = 'cw-mac-exit'
@@ -85,17 +85,20 @@ def configure():
 
     run('tar', '-xzf', PANEL / 'dist/awg-native-linux-amd64.tar.gz', '-C', TOOLS)
     run('modprobe', 'tun')
-    run('ip', 'addr', 'add', ENTRY + '/32', 'dev', 'lab0')
+    run('modprobe', 'ipip')
+    # vmnet sees only the fixed outer addresses of the host and guest.
+    run('ip', 'tunnel', 'add', 'cwpath0', 'mode', 'ipip', 'local', '192.168.91.2',
+        'remote', '192.168.91.1', 'dev', 'lab0')
+    run('ip', 'addr', 'add', GATEWAY, 'peer', PROVIDER + '/32', 'dev', 'cwpath0')
+    run('ip', 'addr', 'add', ENTRY + '/32', 'dev', 'cwpath0')
+    run('ip', 'link', 'set', 'cwpath0', 'up')
     run('sysctl', '-qw', 'net.ipv4.ip_forward=1')
-    run('sysctl', '-qw', 'net.ipv4.neigh.lab0.proxy_delay=0')
     link(NAMESPACE, '192.168.92', 'exit-host', 'exit-peer')
     link('cw-mac-observer', '192.168.93', 'look-host', 'look-peer')
     netns(NAMESPACE, 'sysctl', '-qw', 'net.ipv4.ip_forward=1')
     for address in targets:
         netns('cw-mac-observer', 'ip', 'addr', 'add', address + '/32', 'dev', 'lo')
         run('ip', 'route', 'add', address + '/32', 'via', OBSERVER)
-        # The host-only bridge can treat the lab default as on-link.
-        run('ip', 'neigh', 'add', 'proxy', address, 'dev', 'lab0')
     for namespace, command in ((None, f'''
 table ip cw_mac_lab {{
     chain entry {{
