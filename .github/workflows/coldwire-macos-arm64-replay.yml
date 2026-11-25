@@ -1,8 +1,8 @@
-name: Verify the built ARM64 package and split routing
+name: Verify the built ARM64 package on the macOS 26 alias
 
 on:
   push:
-    branches: [test/macos-arm64-replay]
+    branches: [test/macos-26-latest-replay]
 
 permissions:
   actions: read
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [macos-15, macos-26]
+        image: [macos-latest]
     runs-on: ${{ matrix.image }}
     timeout-minutes: 32
     steps:
@@ -33,6 +33,7 @@ jobs:
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$(uname -m)" = arm64
           sw_vers
+          [[ "$(sw_vers -productVersion)" == 26.* ]]
           package=(installer/*_macos_arm64.pkg)
           test "${#package[@]}" -eq 1
           printf '%s  %s\n' 386936ba224d7ce2574021e63d0d1df0a96a2032756125365533361504a325f4 "${package[0]}" | shasum -a 256 -c -
