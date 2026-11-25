@@ -8,8 +8,12 @@ source_path="$PWD"
 test_path="$source_path/client/tests/macos"
 
 finish() {
-    if [ -s "$work/qemu.pid" ]; then
-        sudo -n kill -TERM "$(cat "$work/qemu.pid")" 2>/dev/null || true
+    local result=$?
+    if [ "$result" -ne 0 ] && [ -f "$work/guest.log" ]; then
+        sudo -n tail -n 55 "$work/guest.log" | sed -E 's/ssh-ed25519 [A-Za-z0-9+\/=]+/[test SSH public key]/g' || true
+    fi
+    if [ -f "$work/qemu.pid" ]; then
+        sudo -n kill -TERM "$(sudo -n cat "$work/qemu.pid")" 2>/dev/null || true
     fi
 }
 trap finish EXIT
@@ -40,8 +44,6 @@ users:
     shell: /bin/bash
     ssh_authorized_keys:
       - $(cat "$work/key.pub")
-runcmd:
-  - [touch, /run/coldwire-mac-test-fixture]
 EOF
 cat > "$work/seed/meta-data" <<'EOF'
 instance-id: coldwire-macos-routing
@@ -73,14 +75,18 @@ sudo -n "$qemu" -daemonize -pidfile "$work/qemu.pid" -accel tcg,thread=multi \
 
 guest=(ssh -T -p 39222 -i "$work/key" -o BatchMode=yes -o ConnectTimeout=4
        -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$work/known_hosts" cwlaboratory@127.0.0.1)
-for i in {1..45}; do
-    if "${guest[@]}" 'test -f /run/coldwire-mac-test-fixture' 2>/dev/null; then
+for i in {1..70}; do
+    if "${guest[@]}" true </dev/null 2>"$work/ssh.log"; then
         break
     fi
     sleep 3
 done
-"${guest[@]}" 'test "$(hostname)" = coldwire-lab && test -f /run/coldwire-mac-test-fixture && command -v nft'
-"${guest[@]}" 'sudo install -d -m 700 /run/coldwire-mac-test/panel /run/coldwire-mac-test/tools'
+if ! "${guest[@]}" 'test "$(cat /var/lib/cloud/data/instance-id)" = coldwire-macos-routing && test -x /usr/sbin/nft'; then
+    cat "$work/ssh.log"
+    "${guest[@]}" 'hostname; ip -brief address; cloud-init status --long; ls -l /usr/sbin/nft' || true
+    exit 1
+fi
+"${guest[@]}" 'sudo touch /run/coldwire-mac-test-fixture && sudo install -d -m 700 /run/coldwire-mac-test/panel /run/coldwire-mac-test/tools'
 tar -C "$source_path/admin-panel" -czf - exit_config.py convert_profile.py ru-services.amnezia.json \
     ru-direct.amnezia.json dist/awg-native-linux-amd64.tar.gz |
     "${guest[@]}" 'sudo tar -xzf - -C /run/coldwire-mac-test/panel'
