@@ -58,8 +58,16 @@ on run argv
       tell process "Finder" to set frontmost to true
       keystroke "o" using {command down}
     end tell
-    delay 3
-    tell application "System Events" to tell process "CoreServicesUIAgent" to click button "Done" of window 1
+    set dismissed to false
+    repeat 8 times
+      delay 1
+      try
+        tell application "System Events" to tell process "CoreServicesUIAgent" to click button "Done" of window 1
+        set dismissed to true
+        exit repeat
+      end try
+    end repeat
+    if dismissed is false then my clickVisibleButton("Done")
     do shell script "/usr/bin/open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Security'"
     delay 4
     if my pressButton("System Settings", {"Open Anyway", "Open Anyway…"}) is "" then my clickVisibleButton("Open Anyway")
