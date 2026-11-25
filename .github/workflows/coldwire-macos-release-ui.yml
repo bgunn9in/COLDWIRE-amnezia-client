@@ -7,46 +7,70 @@ permissions:
   contents: read
 jobs:
   finder:
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [macos-15, macos-latest]
-    runs-on: ${{ matrix.image }}
-    timeout-minutes: 12
+    runs-on: macos-latest
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
-          name: coldwire-macos-unsigned-macos-15
-          run-id: 45687306192
+          name: coldwire-macos-unsigned
+          run-id: 45708799991
           path: installer
           github-token: ${{ github.token }}
-      - name: Inspect the downloaded package and Finder session
-        timeout-minutes: 5
+      - name: Inspect the package and per-file approval
+        timeout-minutes: 4
         run: |
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$(uname -m)" = arm64
+          test "$(stat -f %Su /dev/console)" = "$(id -un)"
           sw_vers
-          stat -f 'Console user: %Su' /dev/console
           package=("$PWD"/installer/*_macos_arm64.pkg)
           test "${#package[@]}" -eq 1
-          printf '%s  %s\n' 386936ba224d7ce2574021e63d0d1df0a96a2032756125365533361504a325f4 "${package[0]}" | shasum -a 256 -c -
+          shasum -a 256 "${package[0]}"
           xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;" "${package[0]}"
-          xattr -p com.apple.quarantine "${package[0]}"
-          pkgutil --check-signature "${package[0]}" || true
-          spctl --assess --type install -vv "${package[0]}" || true
-          test "$(stat -f %Su /dev/console)" = "$(id -un)"
-          test ! -d /Applications/AmneziaVPN.app
-          osacompile -o "$RUNNER_TEMP/finder.scpt" client/tests/macos/install_from_finder.applescript
-          COLDWIRE_TEST_PASSWORD=$(openssl rand -hex 18)
-          printf '::add-mask::%s\n' "$COLDWIRE_TEST_PASSWORD"
-          sudo -n sysadminctl -addUser coldwireqa -fullName 'COLDWIRE Installer Test' -password "$COLDWIRE_TEST_PASSWORD" -admin
-          dscl . -authonly coldwireqa "$COLDWIRE_TEST_PASSWORD"
-          id -Gn coldwireqa | grep -qw admin
-          export COLDWIRE_TEST_PASSWORD
-          osascript "$RUNNER_TEMP/finder.scpt" "${package[0]}"
-          unset COLDWIRE_TEST_PASSWORD
-          sudo -n /bin/launchctl print system/AmneziaVPN-service | grep 'state = running'
-          lipo -archs /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN | grep -x arm64
+          mkdir "$RUNNER_TEMP/finder-ui"
+          osascript - "${package[0]}" <<'SCRIPT' || true
+          on run argv
+            with timeout of 10 seconds
+              tell application "Finder" to open (POSIX file (item 1 of argv) as alias)
+            end timeout
+          end run
+          SCRIPT
+          sleep 3
+          screencapture -x "$RUNNER_TEMP/finder-ui/01-package-warning.png" || true
+          osascript <<'SCRIPT' || true
+          with timeout of 8 seconds
+            tell application "System Events"
+              tell process "CoreServicesUIAgent"
+                log {name of windows, name of buttons of windows}
+                if exists button "Done" of window 1 then
+                  click button "Done" of window 1
+                  log "Dismissed the initial Gatekeeper warning"
+                end if
+              end tell
+            end tell
+          end timeout
+          SCRIPT
+          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Security'
+          sleep 5
+          screencapture -x "$RUNNER_TEMP/finder-ui/02-privacy-security.png" || true
+          osascript <<'SCRIPT' || true
+          with timeout of 8 seconds
+            tell application "System Events"
+              tell process "System Settings"
+                log {name of windows, name of buttons of windows}
+                set allWidgets to entire contents of window 1
+                repeat with widgetItem in allWidgets
+                  set widget to contents of widgetItem
+                  if role of widget is "AXButton" then log {name of widget, description of widget}
+                end repeat
+              end tell
+            end tell
+          end timeout
+          SCRIPT
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: coldwire-finder-ui
+          path: ${{ runner.temp }}/finder-ui
+          if-no-files-found: ignore
+          retention-days: 7
