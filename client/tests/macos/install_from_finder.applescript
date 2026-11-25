@@ -20,23 +20,27 @@ on pressButton(processName, namesToPress)
   return ""
 end pressButton
 
-on clickVisibleButton(buttonName)
+on visiblePosition(buttonName)
   set workPath to system attribute "RUNNER_TEMP"
   set picturePath to workPath & "/finder-button.png"
   do shell script "/usr/sbin/screencapture -x " & quoted form of picturePath
   set positions to paragraphs of (do shell script quoted form of (workPath & "/find-button") & " " & quoted form of picturePath & " " & quoted form of buttonName)
-  set xPosition to item 1 of positions as integer
-  set yPosition to item 2 of positions as integer
-  tell application "System Events" to click at {xPosition, yPosition}
+  return {item 1 of positions as integer, item 2 of positions as integer}
+end visiblePosition
+
+on clickVisibleButton(buttonName)
+  set positionOnScreen to my visiblePosition(buttonName)
+  tell application "System Events" to click at positionOnScreen
 end clickVisibleButton
 
 on authenticate(installPassword)
   try
-    my clickVisibleButton("Password")
+    set fieldPosition to my visiblePosition("Password")
   on error
     return false
   end try
   tell application "System Events"
+    click at fieldPosition
     key code 48 using {shift down}
     keystroke "a" using {command down}
     keystroke "coldwireqa"
@@ -46,7 +50,9 @@ on authenticate(installPassword)
   try
     my clickVisibleButton("OK")
   on error
-    my clickVisibleButton("Install Software")
+    set buttonX to (item 1 of fieldPosition) + 137
+    set buttonY to (item 2 of fieldPosition) + 43
+    tell application "System Events" to click at {buttonX, buttonY}
   end try
   return true
 end authenticate
