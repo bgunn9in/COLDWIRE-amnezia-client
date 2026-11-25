@@ -1,0 +1,59 @@
+name: Inspect the Finder installer flow
+on:
+  push:
+    branches: [test/macos-release-ui]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  finder:
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [macos-15, macos-latest]
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: coldwire-macos-unsigned-macos-15
+          run-id: 45687306192
+          path: installer
+          github-token: ${{ github.token }}
+      - name: Inspect the downloaded package and Finder session
+        timeout-minutes: 5
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(uname -m)" = arm64
+          sw_vers
+          stat -f 'Console user: %Su' /dev/console
+          package=("$PWD"/installer/*_macos_arm64.pkg)
+          test "${#package[@]}" -eq 1
+          printf '%s  %s\n' 386936ba224d7ce2574021e63d0d1df0a96a2032756125365533361504a325f4 "${package[0]}" | shasum -a 256 -c -
+          xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;" "${package[0]}"
+          xattr -p com.apple.quarantine "${package[0]}"
+          pkgutil --check-signature "${package[0]}" || true
+          spctl --assess --type install -vv "${package[0]}" || true
+          osascript - "${package[0]}" <<'SCRIPT' || true
+          on run argv
+            with timeout of 15 seconds
+              tell application "Finder" to open (POSIX file (item 1 of argv) as alias)
+            end timeout
+          end run
+          SCRIPT
+          sleep 4
+          osascript <<'SCRIPT'
+          with timeout of 15 seconds
+            tell application "System Events"
+              set output to {}
+              repeat with candidate in {"Finder", "Installer", "CoreServicesUIAgent", "SecurityAgent", "System Settings"}
+                if exists process (contents of candidate) then
+                  tell process (contents of candidate)
+                    set end of output to {name, name of windows}
+                  end tell
+                end if
+              end repeat
+              return output
+            end tell
+          end timeout
+          SCRIPT
