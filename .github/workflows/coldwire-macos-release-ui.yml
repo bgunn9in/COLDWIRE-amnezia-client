@@ -14,6 +14,9 @@ jobs:
     runs-on: ${{ matrix.image }}
     timeout-minutes: 12
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           name: coldwire-macos-unsigned-macos-15
@@ -34,26 +37,13 @@ jobs:
           xattr -p com.apple.quarantine "${package[0]}"
           pkgutil --check-signature "${package[0]}" || true
           spctl --assess --type install -vv "${package[0]}" || true
-          osascript - "${package[0]}" <<'SCRIPT' || true
-          on run argv
-            with timeout of 15 seconds
-              tell application "Finder" to open (POSIX file (item 1 of argv) as alias)
-            end timeout
-          end run
-          SCRIPT
-          sleep 4
-          osascript <<'SCRIPT'
-          with timeout of 15 seconds
-            tell application "System Events"
-              set output to {}
-              repeat with candidate in {"Finder", "Installer", "CoreServicesUIAgent", "SecurityAgent", "System Settings"}
-                if exists process (contents of candidate) then
-                  tell process (contents of candidate)
-                    set end of output to {name, name of windows}
-                  end tell
-                end if
-              end repeat
-              return output
-            end tell
-          end timeout
-          SCRIPT
+          test "$(stat -f %Su /dev/console)" = "$(id -un)"
+          test ! -d /Applications/AmneziaVPN.app
+          COLDWIRE_TEST_PASSWORD=$(openssl rand -hex 18)
+          printf '::add-mask::%s\n' "$COLDWIRE_TEST_PASSWORD"
+          sudo -n dscl . -passwd "/Users/$(id -un)" "$COLDWIRE_TEST_PASSWORD"
+          export COLDWIRE_TEST_PASSWORD
+          osascript client/tests/macos/install_from_finder.applescript "${package[0]}"
+          unset COLDWIRE_TEST_PASSWORD
+          sudo -n /bin/launchctl print system/AmneziaVPN-service | grep 'state = running'
+          lipo -archs /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN | grep -x arm64
