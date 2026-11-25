@@ -41,7 +41,7 @@ jobs:
           <?xml version="1.0" encoding="UTF-8"?>
           <plist version="1.0">
           <dict>
-            <key>CFBundleIdentifier</key><string>org.amneziavpn.AmneziaVPN</string>
+            <key>CFBundleIdentifier</key><string>com.yourcompany.AmneziaVPN</string>
             <key>CFBundleExecutable</key><string>AmneziaVPN</string>
             <key>CFBundleName</key><string>COLDWIRE installer fixture</string>
             <key>CFBundlePackageType</key><string>APPL</string>
@@ -70,6 +70,10 @@ jobs:
             ls -l "$script"
             head -n 1 "$script"
           done
+          expanded_app=$(find "$fixture/expanded" -type d -name AmneziaVPN.app -print -quit)
+          test -n "$expanded_app"
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$expanded_app"
+          grep -A 3 '<relocate>' "$fixture"/expanded/*-AmneziaVPN.pkg/PackageInfo || true
           if ! sudo /usr/sbin/installer -dumplog -verboseR -pkg "${package[0]}" -target /; then
             sudo tail -n 100 /var/log/install.log || true
             sudo tail -n 70 /var/log/AmneziaVPN/post-install.log || true
