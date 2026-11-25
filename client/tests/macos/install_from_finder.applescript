@@ -2,16 +2,17 @@ on pressButton(processName, namesToPress)
   tell application "System Events"
     if not (exists process processName) then return ""
     tell process processName
-      repeat with currentWindow in windows
-        repeat with widget in entire contents of currentWindow
-          if role of widget is "AXButton" then
-            set buttonName to name of widget
-            if buttonName is in namesToPress and enabled of widget then
-              click widget
-              return buttonName
-            end if
+      if (count of windows) is 0 then return ""
+      set widgets to entire contents of window 1
+      repeat with widgetItem in widgets
+        set widget to contents of widgetItem
+        if role of widget is "AXButton" then
+          set buttonName to name of widget
+          if buttonName is in namesToPress and enabled of widget then
+            click widget
+            return buttonName
           end if
-        end repeat
+        end if
       end repeat
     end tell
   end tell
@@ -23,11 +24,14 @@ on authenticate(installPassword)
     repeat with processName in {"SecurityAgent", "authorizationhost", "CoreServicesUIAgent", "System Settings", "Installer"}
       if exists process (contents of processName) then
         tell process (contents of processName)
-          repeat with currentWindow in windows
-            repeat with widget in entire contents of currentWindow
+          if (count of windows) > 0 then
+            set widgets to entire contents of window 1
+            repeat with widgetItem in widgets
+              set widget to contents of widgetItem
               if (subrole of widget) is "AXSecureTextField" then
                 set frontmost to true
-                repeat with userField in entire contents of currentWindow
+                repeat with fieldItem in widgets
+                  set userField to contents of fieldItem
                   if role of userField is "AXTextField" and subrole of userField is not "AXSecureTextField" then
                     if value of userField is "runner" or name of userField is "User Name" then
                       set value of userField to "coldwireqa"
@@ -41,7 +45,7 @@ on authenticate(installPassword)
                 return true
               end if
             end repeat
-          end repeat
+          end if
         end tell
       end if
     end repeat
