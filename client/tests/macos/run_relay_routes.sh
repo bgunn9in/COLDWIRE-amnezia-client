@@ -97,4 +97,8 @@ umask 077
 for name in lab.json ru-direct.vpn ru-services.vpn all.vpn; do
     "${guest[@]}" "sudo cat $guest_root/$name" > "$work/$name"
 done
-python3 "$test_path/check_relay_routes.py" "$work"
+"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i lab0 -c 60 'arp or tcp port 18080 or udp port 32497'; fi"
+if ! python3 "$test_path/check_relay_routes.py" "$work"; then
+    "${guest[@]}" 'ip -s link show lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer --no-pager -n 30' || true
+    exit 1
+fi

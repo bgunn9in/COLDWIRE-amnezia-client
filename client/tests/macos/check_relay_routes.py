@@ -92,6 +92,7 @@ def main(root):
     physical = route(gateway)['interface']
     assert physical != original['interface']
     assert f'inet {provider} ' in subprocess.check_output(['/sbin/ifconfig', physical], text=True), physical
+    subprocess.run(['/sbin/ping', '-c', '1', '-W', '1800', gateway], check=True, timeout=5)
 
     subprocess.run(['/usr/bin/pkill', '-TERM', '-x', 'AmneziaVPN'], check=False)
     time.sleep(2)

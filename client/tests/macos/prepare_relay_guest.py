@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from ipaddress import IPv4Address, IPv4Network
 import json
 from pathlib import Path
+from urllib.request import ProxyHandler, build_opener
 import os
 import secrets
 import subprocess
@@ -70,7 +71,7 @@ def configure():
 
     services, direct = prefixes('ru-services'), prefixes('ru-direct')
     common = next(str(address) for prefix in services
-                  for address in (prefix.network_address, prefix.broadcast_address)
+                  for address in (prefix.network_address + (prefix.num_addresses > 1),)
                   if address.is_global and any(address in other for other in direct))
     direct_only = next(str(address) for prefix in direct
                        for address in (prefix.network_address, prefix.broadcast_address)
@@ -131,11 +132,10 @@ table ip cw_mac_nat {{
         profile['coldwireRouting'] = {'version': 1, 'mode': mode, 'ipv4': [str(network) for network in networks]}
         exit_config.write_private(ROOT / f'{mode}.vpn', encode(profile))
 
-    with (ROOT / 'services.log').open('wb') as log:
-        subprocess.Popen(['ip', 'netns', 'exec', 'cw-mac-observer', sys.executable,
-                          __file__, 'observe'], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-        subprocess.Popen(['ip', 'netns', 'exec', NAMESPACE, TOOLS / 'amneziawg-go', '-f', 'awg0'],
-                         stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    run('systemd-run', '--unit=cw-mac-observer', '/usr/sbin/ip', 'netns', 'exec', 'cw-mac-observer',
+        sys.executable, __file__, 'observe')
+    run('systemd-run', '--unit=cw-mac-awg', '/usr/sbin/ip', 'netns', 'exec', NAMESPACE,
+        TOOLS / 'amneziawg-go', '-f', 'awg0')
     for _ in range(80):
         if Path('/run/amneziawg/awg0.sock').exists():
             break
@@ -147,6 +147,10 @@ table ip cw_mac_nat {{
     netns(NAMESPACE, TOOLS / 'awg', 'setconf', 'awg0', '/dev/stdin', input=native, text=True)
     netns(NAMESPACE, 'ip', 'addr', 'add', '10.8.1.1/24', 'dev', 'awg0')
     netns(NAMESPACE, 'ip', 'link', 'set', 'awg0', 'mtu', '1280', 'up')
+    opener = build_opener(ProxyHandler({}))
+    for target in targets:
+        with opener.open(f'http://{target}:18080/', timeout=3) as received:
+            assert received.read().decode() == '192.168.93.1'
     (ROOT / 'lab.json').write_text(json.dumps(dict(provider=PROVIDER, gateway=GATEWAY, entry=ENTRY,
                                                    exit=EXIT, targets=targets)), encoding='utf-8')
     print('Ready: isolated relay, exit and observer', flush=True)
