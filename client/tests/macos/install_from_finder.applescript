@@ -20,6 +20,16 @@ on pressButton(processName, namesToPress)
   return ""
 end pressButton
 
+on clickVisibleButton(buttonName)
+  set workPath to system attribute "RUNNER_TEMP"
+  set picturePath to workPath & "/finder-button.png"
+  do shell script "/usr/sbin/screencapture -x " & quoted form of picturePath
+  set positions to paragraphs of (do shell script quoted form of (workPath & "/find-button") & " " & quoted form of picturePath & " " & quoted form of buttonName)
+  set xPosition to item 1 of positions as integer
+  set yPosition to item 2 of positions as integer
+  tell application "System Events" to click at {xPosition, yPosition}
+end clickVisibleButton
+
 on authenticate(installPassword)
   tell application "System Events"
     repeat with processName in {"SecurityAgent", "authorizationhost", "CoreServicesUIAgent", "System Settings", "Installer"}
@@ -69,7 +79,7 @@ on run argv
     tell application "System Events" to tell process "CoreServicesUIAgent" to click button "Done" of window 1
     do shell script "/usr/bin/open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Security'"
     delay 4
-    if my pressButton("System Settings", {"Open Anyway", "Open Anyway…"}) is "" then error "Open Anyway was not available"
+    if my pressButton("System Settings", {"Open Anyway", "Open Anyway…"}) is "" then my clickVisibleButton("Open Anyway")
     log "Requested approval for the candidate package"
 
     repeat 28 times

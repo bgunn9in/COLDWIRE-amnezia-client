@@ -46,6 +46,7 @@ jobs:
           printf '%s  %s\n' 16924a3d3bfb213b7574393569444774d153644409642d3793107d620ec4b884 "$downloaded" | shasum -a 256 -c -
           xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;$(uuidgen)" "$downloaded"
           osacompile -o "$RUNNER_TEMP/finder.scpt" client/tests/macos/install_from_finder.applescript
+          xcrun swiftc client/tests/macos/locate_installer_button.swift -o "$RUNNER_TEMP/find-button"
           COLDWIRE_TEST_PASSWORD=$(openssl rand -hex 18)
           printf '::add-mask::%s\n' "$COLDWIRE_TEST_PASSWORD"
           sudo -n sysadminctl -addUser coldwireqa -fullName 'COLDWIRE Installer Test' -password "$COLDWIRE_TEST_PASSWORD" -admin
