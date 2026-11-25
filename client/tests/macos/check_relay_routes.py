@@ -127,6 +127,9 @@ def main(root):
         print(f'Isolated provider route active on {physical}: {selected}', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
+        for target in targets:
+            # Forget the host-only bridge's ARP clones before the split routes are installed.
+            privileged('/usr/sbin/arp', '-d', target, 'ifscope', physical, capture_output=True)
         modes = [('ru-services', (provider, exit_ip, exit_ip)),
                  ('ru-direct', (provider, provider, exit_ip)),
                  ('all', (exit_ip, exit_ip, exit_ip))]
@@ -136,16 +139,17 @@ def main(root):
             with (root / f'client-{mode}.log').open('wb') as log:
                 client = subprocess.Popen([APP, '--import', profile, '--connect', str(index)],
                                           stdout=log, stderr=subprocess.STDOUT,
-                                          env=dict(os.environ, QT_LOGGING_RULES='*.debug=true'))
+                                          env=dict(os.environ, QT_LOGGING_RULES='*.debug=true;qt.*.debug=false'))
                 try:
-                    for _ in range(60):
+                    for _ in range(120):
                         if client.poll() is not None:
                             raise RuntimeError('The COLDWIRE client exited before connecting')
-                        tunnel = route(targets[-1]).get('interface', '')
-                        if tunnel.startswith('utun'):
-                            status = subprocess.check_output(['/sbin/ifconfig', tunnel], text=True)
-                            if f'inet 10.8.1.{index + 2} ' in status:
-                                break
+                        status = subprocess.check_output(['/sbin/ifconfig', '-a'], text=True, timeout=5)
+                        iface = re.search(fr'^(utun\d+):[^\n]*(?:\n\t[^\n]*)*?\n\tinet 10\.8\.1\.{index + 2} ',
+                                          status, re.MULTILINE)
+                        if iface and route(targets[-1]).get('interface') == iface[1]:
+                            tunnel = iface[1]
+                            break
                         time.sleep(.5)
                     else:
                         raise RuntimeError(f'No AWG route appeared in mode {mode}: {route(targets[-1])}')
@@ -163,6 +167,10 @@ def main(root):
                     notes = [line for line in lines if re.search(r'connect|import|split tunneling|error|failed|handshake|started', line, re.I)]
                     for note in notes[-25:]:
                         print(re.sub(r'[A-Za-z0-9+/_=-]{40,}', '[redacted]', note), flush=True)
+                    interfaces = subprocess.check_output(['/sbin/ifconfig', '-a'], text=True, timeout=5)
+                    for line in interfaces.splitlines():
+                        if line.startswith('utun') or 'inet 10.8.1.' in line:
+                            print(line, flush=True)
                     log = privileged('/usr/bin/log', 'show', '--last', '2m', '--style', 'compact',
                                      '--predicate', 'process == "AmneziaVPN-service" OR process == "amneziawg-go"',
                                      capture_output=True, text=True, check=False).stdout
@@ -191,7 +199,7 @@ if __name__ == '__main__':
     if sys.argv[1] == '--restore':
         assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
         marker = Path(sys.argv[4])
-        time.sleep(150)
+        time.sleep(250)
         if not marker.exists():
             restore_gateway(sys.argv[2], sys.argv[3], marker)
     else:
