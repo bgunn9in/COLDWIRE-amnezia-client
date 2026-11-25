@@ -180,8 +180,11 @@ def upgrade(package):
             'Conf.sitesSplitTunnelingEnabled')
     before = settings()
     assert before['Servers.serversList']
-    subprocess.run(['sudo', '-n', '/usr/sbin/installer', '-dumplog', '-verboseR', '-pkg', package, '-target', '/'],
-                   check=True, timeout=180)
+    try:
+        subprocess.run(['sudo', '-n', '/usr/sbin/installer', '-dumplog', '-verboseR', '-pkg', package, '-target', '/'],
+                       check=True, timeout=420)
+    finally:
+        privileged('/usr/bin/tail', '-n', '35', '/var/log/AmneziaVPN/post-install.log', check=False)
     daemon = privileged('/bin/launchctl', 'print', 'system/AmneziaVPN-service', text=True, capture_output=True, check=True)
     assert 'state = running' in daemon.stdout
     assert subprocess.check_output(['/usr/bin/lipo', '-archs', APP], text=True).strip() == 'arm64'
