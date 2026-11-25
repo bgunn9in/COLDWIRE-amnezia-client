@@ -17,15 +17,15 @@ trap finish EXIT
 command -v qemu-system-x86_64 >/dev/null || brew install qemu
 qemu=$(command -v qemu-system-x86_64)
 
-image=debian-12-genericcloud-amd64.qcow2
-debian=https://cloud.debian.org/images/cloud/bookworm/latest
+image=jammy-server-cloudimg-amd64.img
+ubuntu=https://cloud-images.ubuntu.com/jammy/current
 (
     cd "$work"
-    curl --fail --silent --show-error --location --retry 3 "$debian/$image" -o "$image"
-    curl --fail --silent --show-error --location --retry 3 "$debian/SHA512SUMS" -o SHA512SUMS
-    awk -v name="$image" '$2 == name || $2 == ("*" name) { print $1 "  " name }' SHA512SUMS > image.sha512
-    test -s image.sha512
-    shasum -a 512 -c image.sha512
+    curl --fail --silent --show-error --location --retry 3 "$ubuntu/$image" -o "$image"
+    curl --fail --silent --show-error --location --retry 3 "$ubuntu/SHA256SUMS" -o SHA256SUMS
+    awk -v name="$image" '$2 == name || $2 == ("*" name) { print $1 "  " name }' SHA256SUMS > image.sha256
+    test -s image.sha256
+    shasum -a 256 -c image.sha256
 )
 
 mkdir "$work/seed"
