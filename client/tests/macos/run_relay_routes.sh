@@ -92,7 +92,10 @@ tar -C "$source_path/admin-panel" -czf - exit_config.py convert_profile.py ru-se
     ru-direct.amnezia.json dist/awg-native-linux-amd64.tar.gz |
     "${guest[@]}" "sudo tar -xzf - -C $guest_root/panel"
 "${guest[@]}" "sudo tee $guest_root/prepare.py >/dev/null" < "$test_path/prepare_relay_guest.py"
-"${guest[@]}" "sudo /usr/bin/python3 $guest_root/prepare.py"
+if ! "${guest[@]}" "sudo /usr/bin/python3 $guest_root/prepare.py"; then
+    "${guest[@]}" 'sudo journalctl -u cw-mac-observer --no-pager -n 20; sudo ip netns exec cw-mac-observer ss -ltn' || true
+    exit 1
+fi
 umask 077
 for name in lab.json ru-direct.vpn ru-services.vpn all.vpn; do
     "${guest[@]}" "sudo cat $guest_root/$name" > "$work/$name"

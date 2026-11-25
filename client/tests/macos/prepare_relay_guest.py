@@ -1,8 +1,9 @@
 from base64 import b64encode
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from ipaddress import IPv4Address, IPv4Network
 import json
 from pathlib import Path
+from socketserver import ThreadingTCPServer
 from urllib.request import ProxyHandler, build_opener
 import os
 import secrets
@@ -158,6 +159,6 @@ table ip cw_mac_nat {{
 
 if __name__ == '__main__':
     if sys.argv[1:] == ['observe']:
-        ThreadingHTTPServer(('0.0.0.0', 18080), SourceHandler).serve_forever()
+        ThreadingTCPServer(('0.0.0.0', 18080), SourceHandler).serve_forever()
     else:
         configure()
