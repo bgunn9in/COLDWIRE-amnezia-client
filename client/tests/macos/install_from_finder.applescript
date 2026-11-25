@@ -8,6 +8,7 @@ on pressButton(processName, namesToPress)
         set widget to contents of widgetItem
         if role of widget is "AXButton" then
           set buttonName to name of widget
+          if buttonName is missing value then set buttonName to description of widget
           if buttonName is in namesToPress and enabled of widget then
             click widget
             return buttonName
@@ -28,7 +29,7 @@ on authenticate(installPassword)
             set widgets to entire contents of window 1
             repeat with widgetItem in widgets
               set widget to contents of widgetItem
-              if (subrole of widget) is "AXSecureTextField" then
+              if role of widget is "AXTextField" and subrole of widget is "AXSecureTextField" then
                 set frontmost to true
                 repeat with fieldItem in widgets
                   set userField to contents of fieldItem
@@ -58,13 +59,20 @@ on run argv
   set installPassword to system attribute "COLDWIRE_TEST_PASSWORD"
   if installPassword is "" then error "Missing temporary runner password"
   with timeout of 15 seconds
-    tell application "Finder" to open (POSIX file packagePath as alias)
+    do shell script "/usr/bin/open -R " & quoted form of packagePath
+    delay 2
+    tell application "System Events"
+      tell process "Finder" to set frontmost to true
+      keystroke "o" using {command down}
+    end tell
     delay 3
-    if my pressButton("CoreServicesUIAgent", {"Done", "OK"}) is not "" then
-      do shell script "/usr/bin/open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension'"
-    end if
+    tell application "System Events" to tell process "CoreServicesUIAgent" to click button "Done" of window 1
+    do shell script "/usr/bin/open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Security'"
+    delay 4
+    if my pressButton("System Settings", {"Open Anyway", "Open Anyway…"}) is "" then error "Open Anyway was not available"
+    log "Requested approval for the candidate package"
 
-    repeat 65 times
+    repeat 28 times
       set chosen to my pressButton("Installer", {"Close"})
       if chosen is not "" then return "Installer completed"
       if my authenticate(installPassword) then
@@ -72,7 +80,6 @@ on run argv
         delay 3
       else
         set chosen to my pressButton("CoreServicesUIAgent", {"Open Anyway", "Open Anyway…", "Open"})
-        if chosen is "" then set chosen to my pressButton("System Settings", {"Open Anyway", "Open Anyway…"})
         if chosen is "" then set chosen to my pressButton("Installer", {"Use Password…", "Use Password...", "Continue", "Agree", "Install"})
         if chosen is not "" then log chosen
         delay 1

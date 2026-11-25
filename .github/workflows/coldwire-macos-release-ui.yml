@@ -1,4 +1,4 @@
-name: Inspect the Finder installer flow
+name: Install the verified package through Finder
 on:
   push:
     branches: [test/macos-release-ui]
@@ -7,79 +7,65 @@ permissions:
   contents: read
 jobs:
   finder:
-    runs-on: macos-latest
-    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: macos-15
+            version: '15'
+          - image: macos-latest
+            version: '26'
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 12
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           name: coldwire-macos-unsigned
           run-id: 45708799991
           path: installer
           github-token: ${{ github.token }}
-      - name: Inspect the package and per-file approval
-        timeout-minutes: 4
+      - name: Install from Downloads with the normal per-package approval
+        env:
+          MACOS_VERSION: ${{ matrix.version }}
+        timeout-minutes: 6
         run: |
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$(uname -m)" = arm64
           test "$(stat -f %Su /dev/console)" = "$(id -un)"
+          [[ "$(sw_vers -productVersion)" == "$MACOS_VERSION".* ]]
           sw_vers
+          test ! -d /Applications/AmneziaVPN.app
           package=("$PWD"/installer/*_macos_arm64.pkg)
           test "${#package[@]}" -eq 1
-          shasum -a 256 "${package[0]}"
           mkdir -p "$HOME/Downloads"
           downloaded="$HOME/Downloads/COLDWIRE-macOS.pkg"
           cp "${package[0]}" "$downloaded"
+          printf '%s  %s\n' 16924a3d3bfb213b7574393569444774d153644409642d3793107d620ec4b884 "$downloaded" | shasum -a 256 -c -
           xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;$(uuidgen)" "$downloaded"
-          mkdir "$RUNNER_TEMP/finder-ui"
-          open -R "$downloaded"
-          sleep 2
-          osascript <<'SCRIPT'
-          with timeout of 10 seconds
-            tell application "System Events"
-              tell process "Finder" to set frontmost to true
-              keystroke "o" using {command down}
-            end tell
-          end timeout
-          SCRIPT
-          sleep 3
-          screencapture -x "$RUNNER_TEMP/finder-ui/01-package-warning.png" || true
-          osascript <<'SCRIPT' || true
-          with timeout of 8 seconds
-            tell application "System Events"
-              tell process "CoreServicesUIAgent"
-                log {name of windows, name of buttons of windows}
-                repeat with buttonName in {"Done", "OK"}
-                  if exists button (contents of buttonName) of window 1 then
-                    click button (contents of buttonName) of window 1
-                    log "Dismissed the initial Gatekeeper warning"
-                    exit repeat
-                  end if
-                end repeat
-              end tell
-            end tell
-          end timeout
-          SCRIPT
-          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Security'
+          osacompile -o "$RUNNER_TEMP/finder.scpt" client/tests/macos/install_from_finder.applescript
+          COLDWIRE_TEST_PASSWORD=$(openssl rand -hex 18)
+          printf '::add-mask::%s\n' "$COLDWIRE_TEST_PASSWORD"
+          sudo -n sysadminctl -addUser coldwireqa -fullName 'COLDWIRE Installer Test' -password "$COLDWIRE_TEST_PASSWORD" -admin
+          dscl . -authonly coldwireqa "$COLDWIRE_TEST_PASSWORD"
+          id -Gn coldwireqa | grep -qw admin
+          export COLDWIRE_TEST_PASSWORD
+          if ! osascript "$RUNNER_TEMP/finder.scpt" "$downloaded"; then
+            screencapture -x "$RUNNER_TEMP/finder-stop.png" || true
+            exit 1
+          fi
+          unset COLDWIRE_TEST_PASSWORD
+          sudo -n /bin/launchctl print system/AmneziaVPN-service | grep 'state = running'
+          lipo -archs /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN | grep -x arm64
+          open -a /Applications/AmneziaVPN.app
           sleep 5
-          screencapture -x "$RUNNER_TEMP/finder-ui/02-privacy-security.png" || true
-          osascript <<'SCRIPT' || true
-          with timeout of 8 seconds
-            tell application "System Events"
-              tell process "System Settings"
-                log {name of windows, name of buttons of windows}
-                set allWidgets to entire contents of window 1
-                repeat with widgetItem in allWidgets
-                  set widget to contents of widgetItem
-                  if role of widget is "AXButton" then log {name of widget, description of widget}
-                end repeat
-              end tell
-            end tell
-          end timeout
-          SCRIPT
+          pgrep -x AmneziaVPN
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        if: always()
+        if: failure()
         with:
-          name: coldwire-finder-ui
-          path: ${{ runner.temp }}/finder-ui
+          name: coldwire-finder-macos-${{ matrix.version }}
+          path: ${{ runner.temp }}/finder-stop.png
           if-no-files-found: ignore
           retention-days: 7
