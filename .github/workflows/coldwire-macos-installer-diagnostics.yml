@@ -62,8 +62,9 @@ jobs:
           EOF
           cmake -S "$fixture" -B "$fixture/build" -G Ninja -DCMAKE_OSX_ARCHITECTURES=arm64
           cmake --build "$fixture/build"
-          cpack --config "$fixture/build/CPackConfig.cmake" -B "$fixture/out" -G productbuild
-          package=("$fixture"/out/*_macos_arm64.pkg)
+          cpack --config "$fixture/build/CPackConfig.cmake" -B "$fixture/before" -G productbuild \
+                -D CPACK_COMPONENT_AMNEZIAVPN_PLIST=
+          package=("$fixture"/before/*_macos_arm64.pkg)
           test -f "${package[0]}"
           pkgutil --expand-full "${package[0]}" "$fixture/expanded"
           for script in "$fixture"/expanded/*/Scripts/*install; do
@@ -73,11 +74,19 @@ jobs:
           expanded_app=$(find "$fixture/expanded" -type d -name AmneziaVPN.app -print -quit)
           test -n "$expanded_app"
           /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$expanded_app"
-          grep -A 3 '<relocate>' "$fixture"/expanded/*-AmneziaVPN.pkg/PackageInfo || true
-          if ! sudo /usr/sbin/installer -dumplog -verboseR -pkg "${package[0]}" -target /; then
+          test "$(xmllint --xpath 'count(/pkg-info/relocate/bundle)' "$fixture"/expanded/*-AmneziaVPN.pkg/PackageInfo)" = 1
+          if sudo /usr/sbin/installer -dumplog -verboseR -pkg "${package[0]}" -target /; then
+            echo 'The package with relocation enabled installed on this runner.'
+          else
+            echo 'The package with relocation enabled failed on this runner.'
             sudo tail -n 100 /var/log/install.log || true
             sudo tail -n 70 /var/log/AmneziaVPN/post-install.log || true
-            exit 1
           fi
+          cpack --config "$fixture/build/CPackConfig.cmake" -B "$fixture/after" -G productbuild
+          fixed=("$fixture"/after/*_macos_arm64.pkg)
+          pkgutil --expand-full "${fixed[0]}" "$fixture/fixed"
+          test "$(xmllint --xpath 'count(/pkg-info/relocate/bundle)' "$fixture"/fixed/*-AmneziaVPN.pkg/PackageInfo)" = 0
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$expanded_app"
+          sudo /usr/sbin/installer -dumplog -verboseR -pkg "${fixed[0]}" -target /
           test -x /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN
           sudo launchctl print system/AmneziaVPN-service | grep 'state = running'

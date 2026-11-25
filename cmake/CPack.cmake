@@ -87,6 +87,7 @@ if(WIN32)
 endif()
 
 if (APPLE AND NOT IOS AND NOT MACOS_NE)
+    set(CPACK_COMPONENT_AMNEZIAVPN_PLIST "${CMAKE_SOURCE_DIR}/deploy/data/macos/PackageComponents.plist")
     install(FILES ${CMAKE_SOURCE_DIR}/deploy/data/macos/AmneziaVPN.plist
         DESTINATION "AmneziaVPN.app/Contents/Resources"
         COMPONENT AmneziaVPN
