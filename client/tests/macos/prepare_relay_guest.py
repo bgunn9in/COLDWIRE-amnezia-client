@@ -4,7 +4,6 @@ from ipaddress import IPv4Address, IPv4Network
 import json
 from pathlib import Path
 from socketserver import ThreadingTCPServer
-from urllib.request import ProxyHandler, build_opener
 import os
 import secrets
 import subprocess
@@ -65,6 +64,9 @@ def public(private):
 
 
 def configure():
+    from urllib.error import URLError
+    from urllib.request import ProxyHandler, build_opener
+
     assert os.geteuid() == 0 and Path('/run/coldwire-mac-test-fixture').is_file()
     sys.path.insert(0, str(PANEL))
     import exit_config
@@ -150,8 +152,15 @@ table ip cw_mac_nat {{
     netns(NAMESPACE, 'ip', 'link', 'set', 'awg0', 'mtu', '1280', 'up')
     opener = build_opener(ProxyHandler({}))
     for target in targets:
-        with opener.open(f'http://{target}:18080/', timeout=3) as received:
-            assert received.read().decode() == '192.168.93.1'
+        for attempt in range(16):
+            try:
+                with opener.open(f'http://{target}:18080/', timeout=3) as received:
+                    assert received.read().decode() == '192.168.93.1'
+                break
+            except URLError:
+                if attempt == 15:
+                    raise
+                time.sleep(.75)
     (ROOT / 'lab.json').write_text(json.dumps(dict(provider=PROVIDER, gateway=GATEWAY, entry=ENTRY,
                                                    exit=EXIT, targets=targets)), encoding='utf-8')
     print('Ready: isolated relay, exit and observer', flush=True)
