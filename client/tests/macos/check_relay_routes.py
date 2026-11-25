@@ -38,7 +38,7 @@ def protect_existing_sockets(old, targets):
     sockets = privileged('/usr/sbin/lsof', '-nP', '-iTCP', '-sTCP:ESTABLISHED', '-Fn',
                          capture_output=True, text=True).stdout
     installed = []
-    for address in sorted(set(re.findall(r'->((?:\d+\.){3}\d+):443\b', sockets))):
+    for address in sorted(set(re.findall(r'->((?:\d+\.){3}\d+):\d+\b', sockets))):
         if address in targets or route(address).get('gateway') != old:
             continue
         result = privileged('/sbin/route', '-n', 'add', '-host', address, old, capture_output=True)
@@ -60,7 +60,22 @@ def sample(ip, expected, physical, allowed_tunnel=None):
 
 
 def set_gateway(address):
-    privileged('/sbin/route', '-qn', 'change', 'default', address, check=True, capture_output=True)
+    try:
+        if route('default').get('gateway') == address:
+            return
+    except subprocess.CalledProcessError:
+        pass
+    privileged('/sbin/route', '-qn', 'delete', 'default', capture_output=True)
+    privileged('/sbin/route', '-qn', 'add', 'default', address, check=True, capture_output=True)
+
+
+def restore_gateway(address, interface, marker):
+    try:
+        deactivate()
+    finally:
+        set_gateway(address)
+        assert route('default')['interface'] == interface
+        marker.touch()
 
 
 def main(root):
@@ -72,25 +87,26 @@ def main(root):
     assert len(set(targets)) == 3
     for address in targets:
         IPv4Address(address)
+    original = route('default')
     physical = route(gateway)['interface']
-    assert physical != route('default')['interface']
+    assert physical != original['interface']
     assert f'inet {provider} ' in subprocess.check_output(['/sbin/ifconfig', physical], text=True), physical
 
     subprocess.run(['/usr/bin/pkill', '-TERM', '-x', 'AmneziaVPN'], check=False)
     time.sleep(2)
     deactivate()
-    previous = route('default')['gateway']
+    previous = original['gateway']
     IPv4Address(previous)
     preserved = protect_existing_sockets(previous, targets)
     restored = root / 'gateway-restored'
-    subprocess.Popen(['sudo', '-n', '/bin/sh', '-c',
-                      'sleep 180; test -e "$1" || /sbin/route -qn change default "$2"',
-                      'coldwire-lab-watchdog', restored, previous],
+    subprocess.Popen([sys.executable, __file__, '--restore', previous, original['interface'], restored],
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      start_new_session=True)
     try:
         set_gateway(gateway)
         assert route('default')['gateway'] == gateway
+        assert route('default')['interface'] == physical
+        print(f'Isolated provider route active on {physical}', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
         modes = [('ru-services', (provider, exit_ip, exit_ip)),
@@ -140,15 +156,18 @@ def main(root):
                             client.wait()
                     time.sleep(1)
     finally:
-        try:
-            deactivate()
-        finally:
-            set_gateway(previous)
-            assert route('default')['gateway'] == previous
-            restored.touch()
-            for address in preserved:
-                privileged('/sbin/route', '-qn', 'delete', '-host', address, previous, capture_output=True)
+        restore_gateway(previous, original['interface'], restored)
+        print('Restored the runner default route', flush=True)
+        for address in preserved:
+            privileged('/sbin/route', '-qn', 'delete', '-host', address, previous, capture_output=True)
 
 
 if __name__ == '__main__':
-    main(Path(sys.argv[1]))
+    if sys.argv[1] == '--restore':
+        assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
+        marker = Path(sys.argv[4])
+        time.sleep(100)
+        if not marker.exists():
+            restore_gateway(sys.argv[2], sys.argv[3], marker)
+    else:
+        main(Path(sys.argv[1]))

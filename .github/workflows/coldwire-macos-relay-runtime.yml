@@ -56,4 +56,14 @@ jobs:
           persist-credentials: false
 
       - name: Check egress routes through the isolated Linux guest
-        run: bash client/tests/macos/run_relay_routes.sh
+        run: |
+          set -o pipefail
+          bash client/tests/macos/run_relay_routes.sh 2>&1 | tee "$RUNNER_TEMP/coldwire-macos-egress.log"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: coldwire-macos-egress
+          path: ${{ runner.temp }}/coldwire-macos-egress.log
+          if-no-files-found: warn
+          retention-days: 7
