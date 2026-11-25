@@ -47,13 +47,10 @@ on authenticate(installPassword)
     key code 48
     keystroke installPassword
   end tell
-  try
-    my clickVisibleButton("OK")
-  on error
-    set buttonX to (item 1 of fieldPosition) + 137
-    set buttonY to (item 2 of fieldPosition) + 43
-    tell application "System Events" to click at {buttonX, buttonY}
-  end try
+  set buttonX to (item 1 of fieldPosition) + 137
+  set buttonY to (item 2 of fieldPosition) + 43
+  set workPath to system attribute "RUNNER_TEMP"
+  do shell script quoted form of (workPath & "/find-button") & " --click " & buttonX & " " & buttonY
   return true
 end authenticate
 
