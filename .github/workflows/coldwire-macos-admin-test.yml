@@ -85,7 +85,7 @@ jobs:
             --wheel-dir "$wheels" cryptography==50.0.2
           python -m pip install "$wheels"/cryptography-*.whl
           python -m pip install --only-binary=:all: --requirement admin-panel/requirements-deploy.txt \
-            pyinstaller==6.22.3 conan==2.28.0
+            pyinstaller==6.22.3
           python -m pip check
           python - <<'PY'
           import subprocess
@@ -141,7 +141,9 @@ jobs:
       - name: Build and verify the macOS package
         env:
           QT_INSTALL_DIR: ${{ runner.temp }}
-        run: deploy/build.sh -t macos --generator Ninja --installer productbuild
+        run: |
+          python -m pip install conan==2.28.0
+          deploy/build.sh -t macos --generator Ninja --installer productbuild
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
