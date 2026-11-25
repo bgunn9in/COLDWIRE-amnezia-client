@@ -13,7 +13,7 @@ DAEMON = ('/var/run/amneziavpn/daemon.socket', '/tmp/amneziavpn.socket')
 
 
 def route(address):
-    output = subprocess.check_output(['/sbin/route', '-n', 'get', address], text=True, timeout=4)
+    output = subprocess.check_output(['/sbin/route', '-n', 'get', '-inet', address], text=True, timeout=4)
     return dict(re.findall(r'^\s*(destination|gateway|interface):\s+(\S+)', output, flags=re.MULTILINE))
 
 
@@ -59,21 +59,22 @@ def sample(ip, expected, physical, allowed_tunnel=None):
     return found
 
 
-def set_gateway(address):
+def set_gateway(address, interface):
     try:
-        if route('default').get('gateway') == address:
+        current = route('default')
+        if (current.get('gateway'), current.get('interface')) == (address, interface):
             return
     except subprocess.CalledProcessError:
         pass
-    privileged('/sbin/route', '-qn', 'delete', 'default', capture_output=True)
-    privileged('/sbin/route', '-qn', 'add', 'default', address, check=True, capture_output=True)
+    privileged('/sbin/route', '-qn', 'delete', '-inet', 'default', capture_output=True)
+    privileged('/sbin/route', '-qn', 'add', '-inet', 'default', address, '-ifp', interface, check=True)
 
 
 def restore_gateway(address, interface, marker):
     try:
         deactivate()
     finally:
-        set_gateway(address)
+        set_gateway(address, interface)
         assert route('default')['interface'] == interface
         marker.touch()
 
@@ -103,9 +104,9 @@ def main(root):
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      start_new_session=True)
     try:
-        set_gateway(gateway)
-        assert route('default')['gateway'] == gateway
-        assert route('default')['interface'] == physical
+        set_gateway(gateway, physical)
+        selected = route(targets[-1])
+        assert (selected.get('gateway'), selected.get('interface')) == (gateway, physical), selected
         print(f'Isolated provider route active on {physical}', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     if sys.argv[1] == '--restore':
         assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
         marker = Path(sys.argv[4])
-        time.sleep(100)
+        time.sleep(150)
         if not marker.exists():
             restore_gateway(sys.argv[2], sys.argv[3], marker)
     else:
