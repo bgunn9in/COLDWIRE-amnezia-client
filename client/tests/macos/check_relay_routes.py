@@ -2,6 +2,7 @@ from ipaddress import IPv4Address
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import secrets
 import socket
@@ -173,8 +174,11 @@ def main(root, physical):
             enabled = mode != 'all'
             if enabled:
                 rows = json.loads((Path('admin-panel') / f'{mode}.amnezia.json').read_text())
-                pairs = [value for row in rows for value in (row['ip'], '[]')]
+                sites = {row['ip']: [] for row in rows}
+                pairs = [arg for prefix in sites for arg in (prefix, '()')]
                 subprocess.run([*PREFERENCES, 'Conf.ExceptSites', '-dict', *pairs], check=True)
+                stored = subprocess.check_output(['/usr/bin/defaults', 'export', PREFERENCES[-1], '-'])
+                assert plistlib.loads(stored)['Conf.ExceptSites'] == sites, mode
                 subprocess.run([*PREFERENCES, 'Conf.routeMode', '-int', '2'], check=True)
             subprocess.run([*PREFERENCES, 'Conf.sitesSplitTunnelingEnabled', '-bool', str(enabled).lower()], check=True)
             with (root / f'client-{mode}.log').open('wb') as log:
