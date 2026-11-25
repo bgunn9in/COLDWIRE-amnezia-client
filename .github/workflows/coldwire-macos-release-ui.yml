@@ -39,13 +39,14 @@ jobs:
           spctl --assess --type install -vv "${package[0]}" || true
           test "$(stat -f %Su /dev/console)" = "$(id -un)"
           test ! -d /Applications/AmneziaVPN.app
+          osacompile -o "$RUNNER_TEMP/finder.scpt" client/tests/macos/install_from_finder.applescript
           COLDWIRE_TEST_PASSWORD=$(openssl rand -hex 18)
           printf '::add-mask::%s\n' "$COLDWIRE_TEST_PASSWORD"
           sudo -n sysadminctl -addUser coldwireqa -fullName 'COLDWIRE Installer Test' -password "$COLDWIRE_TEST_PASSWORD" -admin
           dscl . -authonly coldwireqa "$COLDWIRE_TEST_PASSWORD"
           id -Gn coldwireqa | grep -qw admin
           export COLDWIRE_TEST_PASSWORD
-          osascript client/tests/macos/install_from_finder.applescript "${package[0]}"
+          osascript "$RUNNER_TEMP/finder.scpt" "${package[0]}"
           unset COLDWIRE_TEST_PASSWORD
           sudo -n /bin/launchctl print system/AmneziaVPN-service | grep 'state = running'
           lipo -archs /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN | grep -x arm64

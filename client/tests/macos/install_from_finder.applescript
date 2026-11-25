@@ -3,12 +3,12 @@ on pressButton(processName, namesToPress)
     if not (exists process processName) then return ""
     tell process processName
       repeat with currentWindow in windows
-        repeat with control in entire contents of currentWindow
-          if role of control is "AXButton" then
-            set label to name of control
-            if label is in namesToPress and enabled of control then
-              click control
-              return label
+        repeat with widget in entire contents of currentWindow
+          if role of widget is "AXButton" then
+            set buttonName to name of widget
+            if buttonName is in namesToPress and enabled of widget then
+              click widget
+              return buttonName
             end if
           end if
         end repeat
@@ -24,8 +24,8 @@ on authenticate(installPassword)
       if exists process (contents of processName) then
         tell process (contents of processName)
           repeat with currentWindow in windows
-            repeat with control in entire contents of currentWindow
-              if (subrole of control) is "AXSecureTextField" then
+            repeat with widget in entire contents of currentWindow
+              if (subrole of widget) is "AXSecureTextField" then
                 set frontmost to true
                 repeat with userField in entire contents of currentWindow
                   if role of userField is "AXTextField" and subrole of userField is not "AXSecureTextField" then
@@ -35,7 +35,7 @@ on authenticate(installPassword)
                     end if
                   end if
                 end repeat
-                set focused of control to true
+                set focused of widget to true
                 keystroke installPassword
                 key code 36
                 return true
