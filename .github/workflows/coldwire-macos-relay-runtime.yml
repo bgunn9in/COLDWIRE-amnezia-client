@@ -1,0 +1,49 @@
+name: COLDWIRE macOS runtime
+
+on:
+  push:
+    branches: [test/macos-relay-runtime]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  intel-startup:
+    runs-on: macos-26-intel
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: coldwire-macos-admin-test
+          path: installer
+          github-token: ${{ github.token }}
+          run-id: 45604399997
+
+      - name: Verify and launch on Intel
+        run: |
+          test "$(uname -m)" = x86_64
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          sw_vers
+          package=(installer/*.pkg)
+          test "${#package[@]}" -eq 1
+          printf '%s  %s\n' 0bf65204df39137cb82304b79f5f4dd4ce35fdb563dc86896143590fc7b2e431 "${package[0]}" | shasum -a 256 -c -
+          python3 deploy/verify_macos_admin_package.py "${package[0]}"
+          sudo /usr/sbin/installer -pkg "${package[0]}" -target /
+          app=/Applications/AmneziaVPN.app
+          sudo launchctl print system/AmneziaVPN-service | grep -E 'state = running|pid = '
+          open -a "$app"
+          for i in {1..20}; do
+            if pgrep -x AmneziaVPN >/dev/null; then
+              sleep 3
+              pgrep -x AmneziaVPN
+              exit
+            fi
+            sleep 1
+          done
+          exit 1
