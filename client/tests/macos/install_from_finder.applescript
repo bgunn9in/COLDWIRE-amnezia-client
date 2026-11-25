@@ -42,8 +42,12 @@ on authenticate(installPassword)
     keystroke "coldwireqa"
     key code 48
     keystroke installPassword
-    key code 36
   end tell
+  try
+    my clickVisibleButton("OK")
+  on error
+    my clickVisibleButton("Install Software")
+  end try
   return true
 end authenticate
 
@@ -82,7 +86,7 @@ on run argv
         delay 3
       else
         set chosen to my pressButton("CoreServicesUIAgent", {"Open Anyway", "Open Anyway…", "Open"})
-        if chosen is "" then set chosen to my pressButton("Installer", {"Use Password…", "Use Password...", "Continue", "Agree", "Install"})
+        if chosen is "" then set chosen to my pressButton("Installer", {"Use Password…", "Use Password...", "Continue", "Agree", "Install", "Install Software"})
         if chosen is not "" then log chosen
         delay 1
       end if
