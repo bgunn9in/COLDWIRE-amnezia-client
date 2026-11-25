@@ -26,14 +26,20 @@ jobs:
           package=("$PWD"/installer/*_macos_arm64.pkg)
           test "${#package[@]}" -eq 1
           shasum -a 256 "${package[0]}"
-          xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;" "${package[0]}"
+          mkdir -p "$HOME/Downloads"
+          downloaded="$HOME/Downloads/COLDWIRE-macOS.pkg"
+          cp "${package[0]}" "$downloaded"
+          xattr -w com.apple.quarantine "0081;$(printf '%x' "$(date +%s)");Safari;$(uuidgen)" "$downloaded"
           mkdir "$RUNNER_TEMP/finder-ui"
-          osascript - "${package[0]}" <<'SCRIPT' || true
-          on run argv
-            with timeout of 10 seconds
-              tell application "Finder" to open (POSIX file (item 1 of argv) as alias)
-            end timeout
-          end run
+          open -R "$downloaded"
+          sleep 2
+          osascript <<'SCRIPT'
+          with timeout of 10 seconds
+            tell application "System Events"
+              tell process "Finder" to set frontmost to true
+              keystroke "o" using {command down}
+            end tell
+          end timeout
           SCRIPT
           sleep 3
           screencapture -x "$RUNNER_TEMP/finder-ui/01-package-warning.png" || true
@@ -42,10 +48,13 @@ jobs:
             tell application "System Events"
               tell process "CoreServicesUIAgent"
                 log {name of windows, name of buttons of windows}
-                if exists button "Done" of window 1 then
-                  click button "Done" of window 1
-                  log "Dismissed the initial Gatekeeper warning"
-                end if
+                repeat with buttonName in {"Done", "OK"}
+                  if exists button (contents of buttonName) of window 1 then
+                    click button (contents of buttonName) of window 1
+                    log "Dismissed the initial Gatekeeper warning"
+                    exit repeat
+                  end if
+                end repeat
               end tell
             end tell
           end timeout
