@@ -7,7 +7,7 @@ permissions:
 jobs:
   macos:
     name: macOS Apple Silicon
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           python -m pip install 'conan==2.28.0'
           deploy/build.sh -t macos --generator Ninja --installer productbuild
 
-      - name: Verify the ARM64 package and start the client
+      - name: Verify the ARM64 package
         run: |
           test "$(uname -m)" = arm64
           shopt -s nullglob
@@ -67,11 +67,6 @@ jobs:
           codesign --verify --deep --strict --all-architectures --verbose=2 "$app"
           codesign --verify --strict --all-architectures "$app/Contents/PlugIns/platforms/libqcocoa.dylib"
           QT_QPA_PLATFORM=cocoa "$app/Contents/MacOS/AmneziaVPN" --version
-          sudo /usr/sbin/installer -pkg "${packages[0]}" -target /
-          sudo launchctl print system/AmneziaVPN-service | grep 'state = running'
-          open -a /Applications/AmneziaVPN.app
-          sleep 5
-          pgrep -x AmneziaVPN
 
       - uses: actions/upload-artifact@v4
         with:
@@ -79,6 +74,18 @@ jobs:
           path: deploy/build/*_macos_arm64.pkg
           if-no-files-found: error
           retention-days: 7
+
+      - name: Install and start the packaged client
+        run: |
+          if ! sudo /usr/sbin/installer -dumplog -verboseR -pkg deploy/build/*_macos_arm64.pkg -target /; then
+            sudo tail -n 75 /var/log/install.log || true
+            sudo tail -n 60 /var/log/AmneziaVPN/post-install.log || true
+            exit 1
+          fi
+          sudo launchctl print system/AmneziaVPN-service | grep 'state = running'
+          open -a /Applications/AmneziaVPN.app
+          sleep 5
+          pgrep -x AmneziaVPN
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
