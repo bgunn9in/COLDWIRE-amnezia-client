@@ -149,6 +149,11 @@ jobs:
           [[ "$CANDIDATE_SHA256" =~ ^[0-9a-f]{64}$ ]]
           printf '%s  %s\n' "$CANDIDATE_SHA256" "$candidate" | shasum -a 256 -c -
           printf 'CW_UPGRADE_PACKAGE=%s\n' "$PWD/$candidate" >> "$GITHUB_ENV"
+          expanded="$RUNNER_TEMP/candidate-identity"
+          pkgutil --expand-full "$candidate" "$expanded"
+          app=$(find "$expanded" -type d -name AmneziaVPN.app -print -quit)
+          test -x "$app/Contents/MacOS/AmneziaVPN"
+          printf 'CW_UPGRADE_APP_IDENTITY=%s\n' "$app/Contents/MacOS/AmneziaVPN" >> "$GITHUB_ENV"
           previous="$RUNNER_TEMP/previous.pkg"
           curl --fail --silent --show-error --location --retry 3 \
             'https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/download/coldwire-spa-0d37706187c6/COLDWIRE-macOS.pkg' \

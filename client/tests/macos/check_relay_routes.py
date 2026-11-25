@@ -48,9 +48,13 @@ def prepare_keychain(root):
     for args in [('create-keychain', '-p', password, keychain), ('unlock-keychain', '-p', password, keychain),
                  ('list-keychains', '-d', 'user', '-s', keychain, *old)]:
         subprocess.run([security, *args], check=True, capture_output=True)
+    trusted_apps = ['-T', APP]
+    candidate_identity = os.environ.get('CW_UPGRADE_APP_IDENTITY')
+    if candidate_identity:
+        trusted_apps += ['-T', candidate_identity]
     for account in ('settingsKeyTag', 'settingsIvTag'):
         subprocess.run([security, 'add-generic-password', '-s', 'AmneziaVPN-Keychain', '-a', account,
-                        '-T', APP, '-X', secrets.token_hex(32), keychain], check=True, capture_output=True)
+                        *trusted_apps, '-X', secrets.token_hex(32), keychain], check=True, capture_output=True)
 
 
 def protect_existing_sockets(old, targets):
