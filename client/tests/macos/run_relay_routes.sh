@@ -10,6 +10,9 @@ guest_root=/opt/coldwire-mac-test
 
 finish() {
     local result=$?
+    if [ "${v6_alias:-}" = yes ]; then
+        sudo -n /sbin/ifconfig "$outer_if" inet6 2001:db8:91::1 -alias || true
+    fi
     if [ -n "${lab_if:-}" ] &&
         default_if=$(/sbin/route -n get -inet default | awk '$1 == "interface:" { print $2 }') &&
         [ -n "$default_if" ] && [ "$default_if" != "$lab_if" ]; then
@@ -115,13 +118,15 @@ umask 077
 outer_if=$(/sbin/route -n get -inet 192.168.91.2 | awk '$1 == "interface:" { print $2 }')
 [[ "$outer_if" =~ ^bridge[0-9]+$ ]]
 /sbin/ifconfig "$outer_if" | grep -q 'inet 192\.168\.91\.1 '
+sudo -n /sbin/ifconfig "$outer_if" inet6 2001:db8:91::1 prefixlen 64 alias
+v6_alias=yes
 lab_if=gif0
 sudo -n /sbin/ifconfig "$lab_if" tunnel 192.168.91.1 192.168.91.2
 sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 192.168.94.2 netmask 255.255.255.255 mtu 1480 up
 /sbin/ifconfig "$lab_if"
 
 "${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i cwpath0 -c 150 'icmp or tcp port 18080 or udp port 32497'; fi"
-if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if"; then
-    "${guest[@]}" 'ip -s link show cwpath0; ip -s link show lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer --no-pager -n 70' || true
+if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if" "$outer_if"; then
+    "${guest[@]}" 'ip -s link show cwpath0; ip -s link show lab0; ip -6 address show dev lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer -u cw-mac-ipv6-observer --no-pager -n 70' || true
     exit 1
 fi

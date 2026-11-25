@@ -1,4 +1,4 @@
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address
 import json
 import os
 from pathlib import Path
@@ -13,10 +13,12 @@ import time
 APP = '/Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN'
 DAEMON = ('/var/run/amneziavpn/daemon.socket', '/tmp/amneziavpn.socket')
 PREFERENCES = ('/usr/bin/defaults', 'write', 'org.amneziavpn.AmneziaVPN')
+IPV6_OBSERVER = '2001:db8:91::2'
 
 
 def route(address):
-    output = subprocess.check_output(['/sbin/route', '-n', 'get', '-inet', address], text=True, timeout=4)
+    family = '-inet6' if ':' in address else '-inet'
+    output = subprocess.check_output(['/sbin/route', '-n', 'get', family, address], text=True, timeout=4)
     return dict(re.findall(r'^\s*(destination|gateway|interface|flags):[ \t]+(\S+)', output, flags=re.MULTILINE))
 
 
@@ -76,6 +78,27 @@ def sample(ip, expected, physical, allowed_tunnel=None):
     return found
 
 
+def ipv6_blocked_packets():
+    rules = privileged('/sbin/pfctl', '-a', 'amn/250.blockIPv6', '-vvsr', text=True,
+                       capture_output=True, check=True).stdout
+    count = re.search(r'Packets:\s*(\d+)', rules)
+    assert 'block return out inet6' in rules and count, rules
+    return int(count[1])
+
+
+def sample_ipv6(physical, tunnel=None):
+    assert route(IPV6_OBSERVER).get('interface') == physical
+    before = ipv6_blocked_packets() if tunnel else None
+    result = subprocess.run(['/usr/bin/curl', '-6', '--noproxy', '*', '--fail', '--silent',
+                             '--show-error', '--connect-timeout', '4', '--max-time', '5',
+                             f'http://[{IPV6_OBSERVER}]:18081/'], timeout=7, capture_output=True, text=True)
+    if tunnel:
+        assert result.returncode and ipv6_blocked_packets() > before, 'The IPv6 firewall did not block the lab probe'
+    else:
+        result.check_returncode()
+        assert IPv6Address(result.stdout) == IPv6Address('2001:db8:91::1')
+
+
 def set_gateway(address, interface, source=None):
     try:
         current = route('default')
@@ -132,7 +155,40 @@ def import_profile(root):
             stop_client(client)
 
 
-def main(root, physical):
+def settings():
+    return plistlib.loads(subprocess.check_output(['/usr/bin/defaults', 'export', PREFERENCES[-1], '-']))
+
+
+def write_sites(mode, key):
+    rows = json.loads((Path('admin-panel') / f'{mode}.amnezia.json').read_text())
+    sites = {row['ip']: [] for row in rows}
+    pairs = [arg for prefix in sites for arg in (prefix, '()')]
+    subprocess.run([*PREFERENCES, key, '-dict', *pairs], check=True)
+    assert settings()[key] == sites, mode
+
+
+def upgrade(package):
+    write_sites('ru-direct', 'Conf.ExceptSites')
+    write_sites('ru-services', 'Conf.ForwardSites')
+    subprocess.run([*PREFERENCES, 'Conf.routeMode', '-int', '2'], check=True)
+    subprocess.run([*PREFERENCES, 'Conf.sitesSplitTunnelingEnabled', '-bool', 'true'], check=True)
+    keys = ('Servers.serversList', 'Conf.ExceptSites', 'Conf.ForwardSites', 'Conf.routeMode',
+            'Conf.sitesSplitTunnelingEnabled')
+    before = settings()
+    assert before['Servers.serversList']
+    subprocess.run(['sudo', '-n', '/usr/sbin/installer', '-dumplog', '-verboseR', '-pkg', package, '-target', '/'],
+                   check=True, timeout=180)
+    daemon = privileged('/bin/launchctl', 'print', 'system/AmneziaVPN-service', text=True, capture_output=True, check=True)
+    assert 'state = running' in daemon.stdout
+    assert subprocess.check_output(['/usr/bin/lipo', '-archs', APP], text=True).strip() == 'arm64'
+    after = settings()
+    for key in keys:
+        assert after.get(key) == before[key], key
+    subprocess.run(['/usr/bin/pkill', '-TERM', '-x', 'AmneziaVPN'], check=False)
+    print('PASS macOS upgrade preserved the encrypted profile and both saved route lists', flush=True)
+
+
+def main(root, physical, outer):
     assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
     lab = json.loads((root / 'lab.json').read_text())
     provider, exit_ip, gateway = lab['provider'], lab['exit'], lab['gateway']
@@ -153,6 +209,9 @@ def main(root, physical):
     for key, value in (('autoUpdateCheck', 'false'), ('saveLogs', 'true'), ('autoConnect', 'false')):
         subprocess.run([*PREFERENCES, f'Conf.{key}', '-bool', value], check=True)
     import_profile(root)
+    package = os.environ.get('CW_UPGRADE_PACKAGE')
+    if package:
+        upgrade(package)
     previous = original['gateway']
     IPv4Address(previous)
     preserved = protect_existing_sockets(previous, targets)
@@ -165,22 +224,22 @@ def main(root, physical):
         selected = route(targets[-1])
         assert (selected.get('interface'), selected.get('gateway')) == (physical, gateway), selected
         print(f'Isolated provider route active on {physical}: {selected}', flush=True)
+        sample_ipv6(outer)
+        print('PASS macOS IPv6 without VPN: observer reachable', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
         modes = [('all', (exit_ip, exit_ip, exit_ip)),
                  ('ru-services', (provider, exit_ip, exit_ip)),
                  ('ru-direct', (provider, provider, exit_ip))]
+        if package:
+            modes.insert(0, modes.pop())
         for mode, expected in modes:
             enabled = mode != 'all'
-            if enabled:
-                rows = json.loads((Path('admin-panel') / f'{mode}.amnezia.json').read_text())
-                sites = {row['ip']: [] for row in rows}
-                pairs = [arg for prefix in sites for arg in (prefix, '()')]
-                subprocess.run([*PREFERENCES, 'Conf.ExceptSites', '-dict', *pairs], check=True)
-                stored = subprocess.check_output(['/usr/bin/defaults', 'export', PREFERENCES[-1], '-'])
-                assert plistlib.loads(stored)['Conf.ExceptSites'] == sites, mode
-                subprocess.run([*PREFERENCES, 'Conf.routeMode', '-int', '2'], check=True)
-            subprocess.run([*PREFERENCES, 'Conf.sitesSplitTunnelingEnabled', '-bool', str(enabled).lower()], check=True)
+            if not (package and mode == 'ru-direct'):
+                if enabled:
+                    write_sites(mode, 'Conf.ExceptSites')
+                    subprocess.run([*PREFERENCES, 'Conf.routeMode', '-int', '2'], check=True)
+                subprocess.run([*PREFERENCES, 'Conf.sitesSplitTunnelingEnabled', '-bool', str(enabled).lower()], check=True)
             with (root / f'client-{mode}.log').open('wb') as log:
                 client = subprocess.Popen([APP, '--connect', '0'],
                                           stdout=log, stderr=subprocess.STDOUT,
@@ -207,6 +266,8 @@ def main(root, physical):
                                 raise RuntimeError(f'The observer did not answer in mode {mode}') from None
                             time.sleep(1)
                     print(f'PASS macOS IPv4 {mode}: observer={seen}', flush=True)
+                    sample_ipv6(outer, tunnel)
+                    print(f'PASS macOS IPv6 {mode}: the firewall blocked the isolated probe', flush=True)
                 except Exception:
                     lines = (root / f'client-{mode}.log').read_text(errors='replace').splitlines()
                     notes = [line for line in lines if re.search(r'connect|import|split tunneling|error|failed|handshake|started', line, re.I)]
@@ -250,4 +311,4 @@ if __name__ == '__main__':
         if not marker.exists():
             restore_gateway(sys.argv[2], sys.argv[3], marker)
     else:
-        main(Path(sys.argv[1]), sys.argv[2])
+        main(Path(sys.argv[1]), sys.argv[2], sys.argv[3])

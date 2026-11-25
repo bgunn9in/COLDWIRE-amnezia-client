@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler
 from ipaddress import IPv4Address, IPv4Network
 import json
 from pathlib import Path
+from socket import AF_INET6
 from socketserver import ThreadingTCPServer
 import os
 import secrets
@@ -19,6 +20,7 @@ PROVIDER = '192.168.94.1'
 EXIT = '192.168.92.2'
 OBSERVER = '192.168.93.2'
 NAMESPACE = 'cw-mac-exit'
+IPV6_OBSERVER = '2001:db8:91::2'
 
 
 class SourceHandler(BaseHTTPRequestHandler):
@@ -29,6 +31,10 @@ class SourceHandler(BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+
+class IPv6Observer(ThreadingTCPServer):
+    address_family = AF_INET6
 
 
 def run(*args, **kwargs):
@@ -86,6 +92,7 @@ def configure():
     run('tar', '-xzf', PANEL / 'dist/awg-native-linux-amd64.tar.gz', '-C', TOOLS)
     run('modprobe', 'tun')
     run('modprobe', 'ipip')
+    run('ip', '-6', 'addr', 'add', IPV6_OBSERVER + '/64', 'dev', 'lab0', 'nodad')
     # vmnet sees only the fixed outer addresses of the host and guest.
     run('ip', 'tunnel', 'add', 'cwpath0', 'mode', 'ipip', 'local', '192.168.91.2',
         'remote', '192.168.91.1', 'dev', 'lab0')
@@ -138,6 +145,7 @@ table ip cw_mac_nat {{
 
     run('systemd-run', '--unit=cw-mac-observer', '/usr/sbin/ip', 'netns', 'exec', 'cw-mac-observer',
         sys.executable, __file__, 'observe')
+    run('systemd-run', '--unit=cw-mac-ipv6-observer', sys.executable, __file__, 'observe-ipv6')
     run('systemd-run', '--unit=cw-mac-awg', '/usr/sbin/ip', 'netns', 'exec', NAMESPACE,
         TOOLS / 'amneziawg-go', '-f', 'awg0')
     for _ in range(80):
@@ -170,5 +178,7 @@ table ip cw_mac_nat {{
 if __name__ == '__main__':
     if sys.argv[1:] == ['observe']:
         ThreadingTCPServer(('0.0.0.0', 18080), SourceHandler).serve_forever()
+    elif sys.argv[1:] == ['observe-ipv6']:
+        IPv6Observer((IPV6_OBSERVER, 18081), SourceHandler).serve_forever()
     else:
         configure()

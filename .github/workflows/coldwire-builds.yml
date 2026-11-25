@@ -18,6 +18,14 @@ on:
         description: Build an Apple Silicon package for release verification
         type: boolean
         default: false
+      macos_verify_run:
+        description: Build run containing the Apple Silicon release candidate
+        type: string
+        required: false
+      macos_verify_sha256:
+        description: SHA-256 of the candidate package
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -29,7 +37,7 @@ concurrency:
 jobs:
   macos:
     name: macOS Apple Silicon
-    if: ${{ !inputs.existing_run && !inputs.windows_only }}
+    if: ${{ !inputs.existing_run && !inputs.windows_only && !inputs.macos_verify_run }}
     runs-on: ${{ inputs.macos_only && 'macos-latest' || 'macos-26' }}
     timeout-minutes: 90
     steps:
@@ -98,9 +106,83 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  verify_macos:
+    name: macOS ${{ matrix.version }} upgrade and routes
+    if: ${{ inputs.macos_verify_run && inputs.macos_verify_sha256 }}
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 32
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: macos-15
+            version: '15'
+          - image: macos-latest
+            version: '26'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: coldwire-macos-unsigned
+          run-id: ${{ inputs.macos_verify_run }}
+          path: installer
+          github-token: ${{ github.token }}
+
+      - name: Verify the candidate and install the previous release
+        env:
+          CANDIDATE_SHA256: ${{ inputs.macos_verify_sha256 }}
+          MACOS_VERSION: ${{ matrix.version }}
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(uname -m)" = arm64
+          [[ "$(sw_vers -productVersion)" == "$MACOS_VERSION".* ]]
+          sw_vers
+          shopt -s nullglob
+          candidate=(installer/*_macos_arm64.pkg)
+          test "${#candidate[@]}" -eq 1
+          [[ "$CANDIDATE_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s  %s\n' "$CANDIDATE_SHA256" "$candidate" | shasum -a 256 -c -
+          printf 'CW_UPGRADE_PACKAGE=%s\n' "$PWD/$candidate" >> "$GITHUB_ENV"
+          previous="$RUNNER_TEMP/previous.pkg"
+          curl --fail --silent --show-error --location --retry 3 \
+            'https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/download/coldwire-spa-0d37706187c6/COLDWIRE-macOS.pkg' \
+            -o "$previous"
+          printf '%s  %s\n' 8c2d79000f4f78cc83f2fa2e9fddffcaf2eeaab6edec39f24d1f66b6e241ab27 "$previous" | shasum -a 256 -c -
+          test ! -d /Applications/AmneziaVPN.app
+          sudo -n /usr/sbin/installer -dumplog -verboseR -pkg "$previous" -target /
+          sudo -n /bin/launchctl print system/AmneziaVPN-service | grep 'state = running'
+          lipo -archs /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN | grep -w x86_64
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: bgunn9in/coldwire
+          ref: 57d7517401ae246e89e7e9e8ed2ff17fdcabcf2e
+          path: admin-panel
+          persist-credentials: false
+
+      - name: Verify upgrade, saved settings and routes
+        timeout-minutes: 24
+        run: |
+          set -o pipefail
+          bash client/tests/macos/run_relay_routes.sh 2>&1 | tee "$RUNNER_TEMP/coldwire-macos-release.log"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: coldwire-upgrade-macos-${{ matrix.version }}
+          path: ${{ runner.temp }}/coldwire-macos-release.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   android:
     name: Android ${{ matrix.version }} ARM64
-    if: ${{ !inputs.existing_run && !inputs.windows_only && !inputs.macos_only }}
+    if: ${{ !inputs.existing_run && !inputs.windows_only && !inputs.macos_only && !inputs.macos_verify_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
@@ -207,7 +289,7 @@ jobs:
           retention-days: 7
 
   windows:
-    if: ${{ !inputs.existing_run && !inputs.macos_only }}
+    if: ${{ !inputs.existing_run && !inputs.macos_only && !inputs.macos_verify_run }}
     runs-on: windows-2022
     timeout-minutes: 120
     steps:
@@ -271,7 +353,7 @@ jobs:
   release:
     needs: [windows, macos, android]
     if: >-
-      ${{ !cancelled() && !inputs.windows_only && !inputs.macos_only && github.ref == 'refs/heads/feature/spa-admission' &&
+      ${{ !cancelled() && !inputs.windows_only && !inputs.macos_only && !inputs.macos_verify_run && github.ref == 'refs/heads/feature/spa-admission' &&
           (inputs.existing_run || (needs.windows.result == 'success' &&
           needs.macos.result == 'success' && needs.android.result == 'success')) }}
     runs-on: ubuntu-24.04
