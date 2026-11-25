@@ -6,9 +6,13 @@ permissions:
   contents: read
 jobs:
   macos:
-    name: macOS Apple Silicon
-    runs-on: macos-26
+    name: ${{ matrix.image }} Apple Silicon
+    runs-on: ${{ matrix.image }}
     timeout-minutes: 110
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [macos-15, macos-26]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,7 +56,9 @@ jobs:
           shopt -s nullglob
           packages=(deploy/build/*_macos_arm64.pkg)
           test "${#packages[@]}" -eq 1
-          expanded="$RUNNER_TEMP/coldwire-package"
+          scratch=$(mktemp -d "$RUNNER_TEMP/coldwire-package.XXXXXX")
+          trap 'rm -rf -- "$scratch"' EXIT
+          expanded="$scratch/expanded"
           pkgutil --expand-full "${packages[0]}" "$expanded"
           test "$(xmllint --xpath 'string(/installer-gui-script/options/@hostArchitectures)' "$expanded/Distribution")" = arm64
           app=$(find "$expanded" -type d -name AmneziaVPN.app -print -quit)
@@ -66,11 +72,10 @@ jobs:
           done
           codesign --verify --deep --strict --all-architectures --verbose=2 "$app"
           codesign --verify --strict --all-architectures "$app/Contents/PlugIns/platforms/libqcocoa.dylib"
-          QT_QPA_PLATFORM=cocoa "$app/Contents/MacOS/AmneziaVPN" --version
 
       - uses: actions/upload-artifact@v4
         with:
-          name: coldwire-macos-unsigned
+          name: coldwire-macos-unsigned-${{ matrix.image }}
           path: deploy/build/*_macos_arm64.pkg
           if-no-files-found: error
           retention-days: 7
@@ -83,6 +88,7 @@ jobs:
             exit 1
           fi
           sudo launchctl print system/AmneziaVPN-service | grep 'state = running'
+          QT_QPA_PLATFORM=cocoa /Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN --version
           open -a /Applications/AmneziaVPN.app
           sleep 5
           pgrep -x AmneziaVPN
@@ -103,7 +109,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coldwire-macos-egress
+          name: coldwire-macos-egress-${{ matrix.image }}
           path: ${{ runner.temp }}/coldwire-macos-egress.log
           if-no-files-found: ignore
           retention-days: 7
