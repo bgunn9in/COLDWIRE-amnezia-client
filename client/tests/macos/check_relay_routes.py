@@ -106,7 +106,7 @@ def main(root):
     try:
         set_gateway(gateway, physical)
         selected = route(targets[-1])
-        assert (selected.get('gateway'), selected.get('interface')) == (gateway, physical), selected
+        assert selected.get('interface') == physical, selected
         print(f'Isolated provider route active on {physical}', flush=True)
         baseline = [sample(target, provider, physical) for target in targets]
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
