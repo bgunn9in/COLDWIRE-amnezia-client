@@ -2,5 +2,6 @@
 <installer-gui-script minSpecVersion="1.0">
         <title>@CPACK_PACKAGE_NAME@</title>
         <license file="@CPACK_RESOURCE_FILE_LICENSE_NOPATH@"/>
-@CPACK_APPLE_PKG_INSTALLER_CONTENT@
+        <options allow-external-scripts="no" customize="allow" rootVolumeOnly="false" hostArchitectures="arm64"/>
+@CPACK_PACKAGEMAKER_CHOICES@
 </installer-gui-script>

@@ -4,7 +4,7 @@ set(CPACK_PACKAGE_VERSION           ${AMNEZIAVPN_VERSION})
 if(WIN32)
     set(CPACK_PACKAGE_FILE_NAME "AmneziaVPN_${AMNEZIAVPN_VERSION}_windows_x64")
 elseif(APPLE AND NOT IOS AND NOT MACOS_NE)
-    set(CPACK_PACKAGE_FILE_NAME "AmneziaVPN_${AMNEZIAVPN_VERSION}_macos_x64")
+    set(CPACK_PACKAGE_FILE_NAME "AmneziaVPN_${AMNEZIAVPN_VERSION}_macos_arm64")
 elseif(LINUX AND NOT ANDROID)
     set(CPACK_PACKAGE_FILE_NAME "AmneziaVPN_${AMNEZIAVPN_VERSION}_linux_x64")
 endif()
@@ -87,6 +87,7 @@ if(WIN32)
 endif()
 
 if (APPLE AND NOT IOS AND NOT MACOS_NE)
+    set(CPACK_COMPONENT_AMNEZIAVPN_PLIST "${CMAKE_SOURCE_DIR}/deploy/data/macos/PackageComponents.plist")
     install(FILES ${CMAKE_SOURCE_DIR}/deploy/data/macos/AmneziaVPN.plist
         DESTINATION "AmneziaVPN.app/Contents/Resources"
         COMPONENT AmneziaVPN
