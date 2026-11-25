@@ -61,6 +61,7 @@ jobs:
           expanded="$scratch/expanded"
           pkgutil --expand-full "${packages[0]}" "$expanded"
           test "$(xmllint --xpath 'string(/installer-gui-script/options/@hostArchitectures)' "$expanded/Distribution")" = arm64
+          test "$(xmllint --xpath 'count(/pkg-info/relocate/bundle)' "$expanded"/*-AmneziaVPN.pkg/PackageInfo)" = 0
           app=$(find "$expanded" -type d -name AmneziaVPN.app -print -quit)
           test -n "$app"
           for binary in AmneziaVPN AmneziaVPN-service amneziawg-go; do
