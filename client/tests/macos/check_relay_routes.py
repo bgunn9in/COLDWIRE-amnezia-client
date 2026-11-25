@@ -113,6 +113,9 @@ def main(root):
     time.sleep(2)
     deactivate()
     prepare_keychain(root)
+    prefs = ('/usr/bin/defaults', 'write', 'AmneziaVPN.ORG.AmneziaVPN')
+    subprocess.run([*prefs, 'Conf.autoUpdateCheck', '-bool', 'false'], check=True)
+    subprocess.run([*prefs, 'Conf.saveLogs', '-bool', 'true'], check=True)
     previous = original['gateway']
     IPv4Address(previous)
     preserved = protect_existing_sockets(previous, targets)
@@ -171,6 +174,14 @@ def main(root):
                     for line in interfaces.splitlines():
                         if line.startswith('utun') or 'inet 10.8.1.' in line:
                             print(line, flush=True)
+                    if client.poll() is None:
+                        stack = root / 'coldwire-stacks.txt'
+                        subprocess.run(['/usr/bin/sample', str(client.pid), '2', '10', '-file', stack],
+                                       timeout=8, capture_output=True, check=False)
+                        if stack.is_file():
+                            lines = stack.read_text(errors='replace').splitlines()
+                            main_thread = next((i for i, line in enumerate(lines) if 'DispatchQueue_1:' in line), 0)
+                            print('\n'.join(lines[main_thread:main_thread + 38]), flush=True)
                     log = privileged('/usr/bin/log', 'show', '--last', '2m', '--style', 'compact',
                                      '--predicate', 'process == "AmneziaVPN-service" OR process == "amneziawg-go"',
                                      capture_output=True, text=True, check=False).stdout
