@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   boot:
+    if: false
     name: Android API ${{ matrix.api }} ARM64
     runs-on: ${{ matrix.host }}
     timeout-minutes: 23
@@ -66,3 +67,19 @@ jobs:
           adb -s emulator-5554 shell am start -n org.amnezia.vpn.coldwire/org.amnezia.vpn.AmneziaActivity
           sleep 15
           adb -s emulator-5554 shell pidof org.amnezia.vpn.coldwire
+
+  linux-runner:
+    name: Linux ARM64 emulator prerequisites
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    steps:
+      - name: Check hardware acceleration on the hosted ARM64 runner
+        run: |
+          test "$(uname -m)" = aarch64
+          if test -c /dev/kvm; then
+            sudo test -r /dev/kvm && sudo test -w /dev/kvm
+            printf '%s\n' 'KVM is exposed to the ARM64 runner.'
+          else
+            printf '%s\n' 'KVM is unavailable on the hosted ARM64 runner.'
+            exit 1
+          fi
