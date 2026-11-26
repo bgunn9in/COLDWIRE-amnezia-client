@@ -9,6 +9,26 @@ permissions:
   actions: read
 
 jobs:
+  macos-wake:
+    name: macOS 27 virtual machine wake probe
+    runs-on: xcode-27
+    timeout-minutes: 8
+    steps:
+      - name: Exercise scheduled guest wake
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          sysctl -n hw.model | grep '^VirtualMac'
+          before=$(date +%s)
+          wake=$(date -v+45S '+%m/%d/%y %H:%M:%S')
+          trap 'sudo -n pmset schedule cancel wake "$wake" coldwire-ci || true' EXIT
+          sudo -n pmset schedule wake "$wake" coldwire-ci
+          pmset -g sched
+          sudo -n pmset sleepnow
+          sleep 50
+          pmset -g log | tail -n 120 | tee sleep.log
+          grep -Ei 'Entering Sleep state|Sleep.*due to Software Sleep' sleep.log
+          grep -Ei 'Wake from (Normal Sleep|Standby|Deep Idle)' sleep.log
+          test "$(($(date +%s) - before))" -ge 45
   boot:
     name: Android API ${{ matrix.api }} ARM64
     runs-on: xcode-27
@@ -57,8 +77,8 @@ jobs:
           printf '%s  %s\n' "$CANDIDATE_SHA256" candidate/COLDWIRE-arm64-v8a.apk | shasum -a 256 -c -
           printf 'no\n' | avdmanager create avd --name ColdwireLab --package "$IMAGE" --force
           "$ANDROID_HOME/emulator/emulator" -avd ColdwireLab -port 5554 -accel off -cores 2 -memory 3072 \
-            -no-snapshot -no-window -no-audio -no-boot-anim -gpu swiftshader -feature -Vulkan \
-            -verbose -qemu -accel tcg > emulator.log 2>&1 &
+            -no-snapshot -no-window -no-audio -no-boot-anim -gpu swiftshader -feature -Vulkan,-HVF \
+            -verbose -qemu -machine type=virt,accel=tcg > emulator.log 2>&1 &
           process=$!
           trap 'kill "$process" 2>/dev/null || true; tail -n 40 emulator.log' EXIT
           for attempt in {1..180}; do
