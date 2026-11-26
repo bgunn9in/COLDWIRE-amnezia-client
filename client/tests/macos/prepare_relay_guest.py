@@ -98,9 +98,9 @@ def configure():
         'remote', '192.168.91.1', 'dev', 'lab0')
     run('ip', 'addr', 'add', GATEWAY, 'peer', PROVIDER + '/32', 'dev', 'cwpath0')
     rebound = '192.168.94.3'
-    run('ip', 'route', 'add', rebound + '/32', 'dev', 'cwpath0')
     run('ip', 'addr', 'add', ENTRY + '/32', 'dev', 'cwpath0')
     run('ip', 'link', 'set', 'cwpath0', 'up')
+    run('ip', 'route', 'add', rebound + '/32', 'dev', 'cwpath0')
     run('sysctl', '-qw', 'net.ipv4.ip_forward=1')
     link(NAMESPACE, '192.168.92', 'exit-host', 'exit-peer')
     link('cw-mac-observer', '192.168.93', 'look-host', 'look-peer')
