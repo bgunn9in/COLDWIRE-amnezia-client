@@ -52,6 +52,7 @@ jobs:
           sudo -n sysadminctl -addUser coldwireqa -fullName 'COLDWIRE Installer Test' -password "$COLDWIRE_TEST_PASSWORD" -admin
           dscl . -authonly coldwireqa "$COLDWIRE_TEST_PASSWORD"
           id -Gn coldwireqa | grep -qw admin
+          sudo -n sysadminctl -secureTokenStatus coldwireqa || true
           export COLDWIRE_TEST_PASSWORD
           (
             sleep 30
@@ -60,6 +61,10 @@ jobs:
           watcher=$!
           if ! osascript "$RUNNER_TEMP/finder.scpt" "$downloaded"; then
             screencapture -x "$RUNNER_TEMP/finder-stop.png" || true
+            sudo -n /usr/bin/log show --last 4m --info --style compact \
+              --predicate 'process IN {"authd", "SecurityAgent", "authorizationhost", "syspolicyd"}' |
+              grep -Ei 'system\.preferences\.security|system\.install\.software|assess|deny|denied|credential|synthetic' |
+              tail -n 100 || true
             exit 1
           fi
           kill "$watcher" 2>/dev/null || true

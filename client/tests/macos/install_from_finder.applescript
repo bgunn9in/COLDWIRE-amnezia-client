@@ -50,7 +50,10 @@ on authenticate(installPassword)
   set buttonX to (item 1 of fieldPosition) + 137
   set buttonY to (item 2 of fieldPosition) + 43
   set workPath to system attribute "RUNNER_TEMP"
-  do shell script quoted form of (workPath & "/find-button") & " --click " & buttonX & " " & buttonY
+  set mouseAction to do shell script quoted form of (workPath & "/find-button") & " --click " & buttonX & " " & buttonY
+  log mouseAction
+  delay 1
+  do shell script "/usr/sbin/screencapture -x -C " & quoted form of (workPath & "/finder-confirm.png")
   return true
 end authenticate
 

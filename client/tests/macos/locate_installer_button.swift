@@ -10,11 +10,13 @@ if CommandLine.arguments[1] == "--click" {
     }
     let point = CGPoint(x: coordinates[0], y: coordinates[1])
     guard CGDisplayBounds(CGMainDisplayID()).contains(point) else { exit(1) }
-    let mouseEvents: [CGEventType] = [.leftMouseDown, .leftMouseUp]
+    guard CGWarpMouseCursorPosition(point) == .success else { exit(1) }
+    let mouseEvents: [CGEventType] = [.mouseMoved, .leftMouseDown, .leftMouseUp]
     for type in mouseEvents {
         CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
         Thread.sleep(forTimeInterval: 0.12)
     }
+    print("Clicked at \(point)")
     exit(0)
 }
 
