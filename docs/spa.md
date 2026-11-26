@@ -4,12 +4,12 @@
 
 ## Install the app
 
-Download the installer for your device. Before opening it, compare its SHA-256 with the matching line in `SHA256SUMS.txt` from the same release. [Windows and Android releases](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest)
+Download the installer and `SHA256SUMS.txt` from the same release. Compare the SHA-256 hash before opening the installer. [Latest release](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest)
 
 | Device | Installer |
 | --- | --- |
 | Windows x64 | `COLDWIRE-Windows-x64.msi` |
-| Mac with Apple Silicon | [`COLDWIRE-macOS.pkg`](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/download/coldwire-macos-2047ace65da6/COLDWIRE-macOS.pkg) ([SHA-256](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/download/coldwire-macos-2047ace65da6/SHA256SUMS.txt)) |
+| Mac with Apple Silicon | `COLDWIRE-macOS.pkg` |
 | Android 9 or 10, ARM64 | `COLDWIRE-Android-9-10-arm64-v8a.apk` |
 | Android 11 or later, ARM64 | `COLDWIRE-Android-11-plus-arm64-v8a.apk` |
 

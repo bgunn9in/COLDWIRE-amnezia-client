@@ -4,12 +4,12 @@
 
 ## Установите приложение
 
-Скачайте установщик для своего устройства. Перед запуском сверьте SHA-256 файла с соответствующей строкой в `SHA256SUMS.txt` из того же релиза. [Релизы для Windows и Android](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest)
+Скачайте установщик и `SHA256SUMS.txt` из одного релиза. Перед запуском сверьте SHA-256 установщика с соответствующей строкой в списке. [Последний релиз](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/latest)
 
 | Устройство | Установщик |
 | --- | --- |
 | Windows x64 | `COLDWIRE-Windows-x64.msi` |
-| Mac с Apple Silicon | [`COLDWIRE-macOS.pkg`](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/download/coldwire-macos-2047ace65da6/COLDWIRE-macOS.pkg) ([SHA-256](https://github.com/bgunn9in/COLDWIRE-amnezia-client/releases/download/coldwire-macos-2047ace65da6/SHA256SUMS.txt)) |
+| Mac с Apple Silicon | `COLDWIRE-macOS.pkg` |
 | Android 9 или 10, ARM64 | `COLDWIRE-Android-9-10-arm64-v8a.apk` |
 | Android 11 и новее, ARM64 | `COLDWIRE-Android-11-plus-arm64-v8a.apk` |
 
