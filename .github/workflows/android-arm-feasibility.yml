@@ -1,0 +1,67 @@
+name: Native Android ARM64 lab probe
+
+on:
+  push:
+    branches: [test/android-arm-feasibility]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  boot:
+    name: Android API ${{ matrix.api }} ARM64
+    runs-on: ${{ matrix.host }}
+    timeout-minutes: 23
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 28
+            host: xcode-27
+            artifact: coldwire-android9-10-arm64-test
+            sha256: e27a61805a590965df72bd3e6626359ff4bc2abcc5b53dde540b567c2f84bd0a
+          - api: 34
+            host: macos-latest
+            artifact: coldwire-android11-plus-arm64
+            sha256: 553927ab06872419cbe0dc9891ba0ed0fe6d81173715b784d950eb8da58b0c92
+    env:
+      IMAGE: system-images;android-${{ matrix.api }};default;arm64-v8a
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools emulator ${{ env.IMAGE }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          run-id: 45795132370
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Boot the native image and launch the exact APK
+        env:
+          CANDIDATE_SHA256: ${{ matrix.sha256 }}
+        run: |
+          test "$(uname -m)" = arm64
+          printf '%s  %s\n' "$CANDIDATE_SHA256" candidate/COLDWIRE-arm64-v8a.apk | shasum -a 256 -c -
+          printf 'no\n' | avdmanager create avd --name ColdwireLab --package "$IMAGE" --force
+          "$ANDROID_HOME/emulator/emulator" -avd ColdwireLab -port 5554 -accel off -cores 1 -memory 2048 \
+            -no-snapshot -no-window -no-audio -no-boot-anim -gpu swiftshader -feature -Vulkan > emulator.log 2>&1 &
+          process=$!
+          trap 'kill "$process" 2>/dev/null || true; tail -n 40 emulator.log' EXIT
+          for attempt in {1..105}; do
+            kill -0 "$process"
+            if test "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1; then
+              break
+            fi
+            sleep 5
+          done
+          test "$(adb -s emulator-5554 shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb -s emulator-5554 shell getprop ro.product.cpu.abilist | grep -q '^arm64-v8a'
+          adb -s emulator-5554 install candidate/COLDWIRE-arm64-v8a.apk
+          adb -s emulator-5554 shell am start -n org.amnezia.vpn.coldwire/org.amnezia.vpn.AmneziaActivity
+          sleep 15
+          adb -s emulator-5554 shell pidof org.amnezia.vpn.coldwire
