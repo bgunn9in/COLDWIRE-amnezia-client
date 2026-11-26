@@ -17,6 +17,7 @@ finish() {
         default_if=$(/sbin/route -n get -inet default | awk '$1 == "interface:" { print $2 }') &&
         [ -n "$default_if" ] && [ "$default_if" != "$lab_if" ]; then
         sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 -alias || true
+        sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.3 -alias || true
         sudo -n /sbin/ifconfig "$lab_if" -tunnel mtu "$gif_mtu" down || true
     fi
     if [ "$result" -ne 0 ] && [ -f "$work/guest.log" ]; then
@@ -131,7 +132,7 @@ sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 192.168.94.2 netmask 255.255.
 /sbin/ifconfig "$lab_if"
 
 "${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i cwpath0 -c 150 'icmp or tcp port 18080 or udp port 32497'; fi"
-if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if" "$outer_if"; then
+if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if" "$outer_if" "${guest[@]}"; then
     "${guest[@]}" 'ip -s link show cwpath0; ip -s link show lab0; ip -6 address show dev lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer -u cw-mac-ipv6-observer --no-pager -n 70' || true
     exit 1
 fi

@@ -97,6 +97,8 @@ def configure():
     run('ip', 'tunnel', 'add', 'cwpath0', 'mode', 'ipip', 'local', '192.168.91.2',
         'remote', '192.168.91.1', 'dev', 'lab0')
     run('ip', 'addr', 'add', GATEWAY, 'peer', PROVIDER + '/32', 'dev', 'cwpath0')
+    rebound = '192.168.94.3'
+    run('ip', 'route', 'add', rebound + '/32', 'dev', 'cwpath0')
     run('ip', 'addr', 'add', ENTRY + '/32', 'dev', 'cwpath0')
     run('ip', 'link', 'set', 'cwpath0', 'up')
     run('sysctl', '-qw', 'net.ipv4.ip_forward=1')
@@ -111,14 +113,14 @@ table inet coldwire_access {{
     set spa_clients {{ type ipv4_addr; flags timeout; }}
     chain entry {{
         type nat hook prerouting priority dstnat; policy accept;
-        ip saddr {PROVIDER} ip daddr {ENTRY} udp dport 32497 dnat to {EXIT}:51820
+        ip saddr {{ {PROVIDER}, {rebound} }} ip daddr {ENTRY} udp dport 32497 dnat to {EXIT}:51820
     }}
     chain forward {{
         type filter hook forward priority filter; policy drop;
         ip saddr @spa_clients ip daddr {EXIT} udp dport 51820 accept
         ip daddr {EXIT} udp dport 51820 drop
         ct state established,related accept
-        ip saddr {{ {PROVIDER}, {EXIT} }} ip daddr {{ {', '.join(targets)} }} tcp dport 18080 accept
+        ip saddr {{ {PROVIDER}, {rebound}, {EXIT} }} ip daddr {{ {', '.join(targets)} }} tcp dport 18080 accept
     }}
 }}'''), (NAMESPACE, f'''
 table ip cw_mac_nat {{
@@ -177,7 +179,7 @@ table ip cw_mac_nat {{
                     raise
                 time.sleep(.75)
     (ROOT / 'lab.json').write_text(json.dumps(dict(provider=PROVIDER, gateway=GATEWAY, entry=ENTRY,
-                                                   exit=EXIT, targets=targets)), encoding='utf-8')
+                                                   exit=EXIT, targets=targets, rebound=rebound)), encoding='utf-8')
     print('Ready: isolated relay, exit and observer', flush=True)
 
 

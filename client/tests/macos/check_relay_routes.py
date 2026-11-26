@@ -196,11 +196,13 @@ def upgrade(package):
     print('PASS macOS upgrade preserved the encrypted profile and both saved route lists', flush=True)
 
 
-def main(root, physical, outer):
+def main(root, physical, outer, guest):
     assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
     lab = json.loads((root / 'lab.json').read_text())
     provider, exit_ip, gateway = lab['provider'], lab['exit'], lab['gateway']
     assert (provider, exit_ip, gateway) == ('192.168.94.1', '192.168.92.2', '192.168.94.2')
+    rebound = lab['rebound']
+    assert rebound == '192.168.94.3'
     targets = tuple(lab['targets'])
     assert len(set(targets)) == 3
     for address in targets:
@@ -281,9 +283,25 @@ def main(root, physical, outer):
                         try:
                             time.sleep(125)
                             assert sample(targets[-1], exit_ip, physical, tunnel) == exit_ip
+                            print('PASS macOS SPA renewal after 125 seconds without the user interface', flush=True)
+                            started = time.monotonic()
+                            privileged('/sbin/ifconfig', physical, 'inet', rebound, gateway,
+                                       'netmask', '255.255.255.255', check=True)
+                            command = f"sudo nft 'get element inet coldwire_access spa_clients {{ {rebound} }}'"
+                            while time.monotonic() - started < 60:
+                                if subprocess.run([*guest, command], capture_output=True, timeout=6).returncode == 0:
+                                    break
+                                time.sleep(1)
+                            else:
+                                raise RuntimeError('SPA did not admit the new provider address')
+                            assert sample(targets[0], rebound, physical, tunnel) == rebound
+                            assert sample(targets[-1], exit_ip, physical, tunnel) == exit_ip
+                            print(f'PASS macOS SPA readmission after address change in {time.monotonic() - started:.1f}s',
+                                  flush=True)
                         finally:
+                            privileged('/sbin/ifconfig', physical, 'inet', provider, gateway,
+                                       'netmask', '255.255.255.255', check=True)
                             client.send_signal(signal.SIGCONT)
-                        print('PASS macOS SPA renewal after 125 seconds without the user interface', flush=True)
                 except Exception:
                     lines = (root / f'client-{mode}.log').read_text(errors='replace').splitlines()
                     notes = [line for line in lines if re.search(r'connect|import|split tunneling|error|failed|handshake|started', line, re.I)]
@@ -327,4 +345,4 @@ if __name__ == '__main__':
         if not marker.exists():
             restore_gateway(sys.argv[2], sys.argv[3], marker)
     else:
-        main(Path(sys.argv[1]), sys.argv[2], sys.argv[3])
+        main(Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4:])
