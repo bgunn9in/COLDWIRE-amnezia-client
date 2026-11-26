@@ -122,6 +122,8 @@ jobs:
             version: '15'
           - image: macos-latest
             version: '26'
+          - image: xcode-27
+            version: '27'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
