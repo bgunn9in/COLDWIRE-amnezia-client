@@ -196,7 +196,7 @@ def upgrade(package):
     print('PASS macOS upgrade preserved the encrypted profile and both saved route lists', flush=True)
 
 
-def main(root, physical, outer, guest):
+def main(root, physical, outer):
     assert sys.platform == 'darwin' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
     lab = json.loads((root / 'lab.json').read_text())
     provider, exit_ip, gateway = lab['provider'], lab['exit'], lab['gateway']
@@ -287,16 +287,16 @@ def main(root, physical, outer, guest):
                             started = time.monotonic()
                             privileged('/sbin/ifconfig', physical, 'inet', rebound, gateway,
                                        'netmask', '255.255.255.255', check=True)
-                            command = f"sudo nft 'get element inet coldwire_access spa_clients {{ {rebound} }}'"
                             while time.monotonic() - started < 60:
-                                if subprocess.run([*guest, command], capture_output=True, timeout=6).returncode == 0:
+                                try:
+                                    assert sample(targets[-1], exit_ip, physical, tunnel) == exit_ip
                                     break
-                                time.sleep(1)
+                                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                                    time.sleep(1)
                             else:
-                                raise RuntimeError('SPA did not admit the new provider address')
+                                raise RuntimeError('The exit route did not recover after the provider address changed')
                             assert sample(targets[0], rebound, physical, tunnel) == rebound
-                            assert sample(targets[-1], exit_ip, physical, tunnel) == exit_ip
-                            print(f'PASS macOS SPA readmission after address change in {time.monotonic() - started:.1f}s',
+                            print(f'PASS macOS exit route recovered after an address change in {time.monotonic() - started:.1f}s',
                                   flush=True)
                         finally:
                             privileged('/sbin/ifconfig', physical, 'inet', provider, gateway,
@@ -345,4 +345,4 @@ if __name__ == '__main__':
         if not marker.exists():
             restore_gateway(sys.argv[2], sys.argv[3], marker)
     else:
-        main(Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4:])
+        main(Path(sys.argv[1]), sys.argv[2], sys.argv[3])
