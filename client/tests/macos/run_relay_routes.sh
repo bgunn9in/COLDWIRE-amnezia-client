@@ -131,7 +131,7 @@ sudo -n /sbin/ifconfig "$lab_if" tunnel 192.168.91.1 192.168.91.2
 sudo -n /sbin/ifconfig "$lab_if" inet 192.168.94.1 192.168.94.2 netmask 255.255.255.255 mtu 1480 up
 /sbin/ifconfig "$lab_if"
 
-"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i cwpath0 -c 150 'icmp or tcp port 18080 or udp port 32497'; fi"
+"${guest[@]}" "if test -x /usr/bin/tcpdump; then sudo systemd-run --unit=cw-mac-trace /usr/bin/tcpdump -ln -i cwpath0 -c 1500 'icmp or tcp port 18080 or udp port 32497'; fi"
 if ! python3 "$test_path/check_relay_routes.py" "$work" "$lab_if" "$outer_if"; then
     "${guest[@]}" 'ip -s link show cwpath0; ip -s link show lab0; ip -6 address show dev lab0; sudo journalctl -u cw-mac-trace -u cw-mac-observer -u cw-mac-ipv6-observer --no-pager -n 70' || true
     exit 1

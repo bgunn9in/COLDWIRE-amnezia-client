@@ -104,10 +104,10 @@ def sample_ipv6(physical, tunnel=None):
         assert IPv6Address(result.stdout) == IPv6Address('2001:db8:91::1')
 
 
-def set_gateway(address, interface, source=None):
+def set_gateway(address, interface, source=None, force=False):
     try:
         current = route('default')
-        if (current.get('gateway'), current.get('interface')) == (address, interface):
+        if not force and (current.get('gateway'), current.get('interface')) == (address, interface):
             return
     except subprocess.CalledProcessError:
         pass
@@ -287,6 +287,10 @@ def main(root, physical, outer):
                             started = time.monotonic()
                             privileged('/sbin/ifconfig', physical, 'inet', rebound, gateway,
                                        'netmask', '255.255.255.255', check=True)
+                            # The point-to-point lab interface has no DHCP client to publish its new default route.
+                            set_gateway(gateway, physical, rebound, force=True)
+                            assert route(lab['entry']).get('interface') == physical
+                            assert sample(targets[0], rebound, physical, tunnel) == rebound
                             while time.monotonic() - started < 60:
                                 try:
                                     assert sample(targets[-1], exit_ip, physical, tunnel) == exit_ip
@@ -295,12 +299,12 @@ def main(root, physical, outer):
                                     time.sleep(1)
                             else:
                                 raise RuntimeError('The exit route did not recover after the provider address changed')
-                            assert sample(targets[0], rebound, physical, tunnel) == rebound
                             print(f'PASS macOS exit route recovered after an address change in {time.monotonic() - started:.1f}s',
                                   flush=True)
                         finally:
                             privileged('/sbin/ifconfig', physical, 'inet', provider, gateway,
                                        'netmask', '255.255.255.255', check=True)
+                            set_gateway(gateway, physical, provider, force=True)
                             client.send_signal(signal.SIGCONT)
                 except Exception:
                     lines = (root / f'client-{mode}.log').read_text(errors='replace').splitlines()
