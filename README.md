@@ -10,3 +10,5 @@ COLDWIRE Amnezia VPN is an AmneziaVPN fork that opens a COLDWIRE relay with SPA 
 - [Set up a relay or manage devices](https://github.com/bgunn9in/coldwire).
 
 GitHub Actions builds the installers from `feature/spa-admission`. Releases include SHA-256 checksums and a link to the build. The client carries the upstream [license](LICENSE). [AmneziaVPN upstream](https://github.com/amnezia-vpn/amnezia-client)
+
+[Release verification](docs/releasing.md)

@@ -40,6 +40,8 @@ jobs:
     if: ${{ !inputs.existing_run && !inputs.windows_only && !inputs.macos_verify_run }}
     runs-on: ${{ inputs.macos_only && 'macos-latest' || 'macos-26' }}
     timeout-minutes: 90
+    outputs:
+      pkg_sha256: ${{ steps.verify.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,6 +80,7 @@ jobs:
           deploy/build.sh -t macos --generator Ninja --installer productbuild
 
       - name: Verify the ARM64 package and start the client
+        id: verify
         run: |
           shopt -s nullglob
           packages=(deploy/build/*_macos_arm64.pkg)
@@ -98,6 +101,7 @@ jobs:
           codesign --verify --deep --strict --all-architectures --verbose=2 "$app"
           codesign --verify --strict --all-architectures "$app/Contents/PlugIns/platforms/libqcocoa.dylib"
           QT_QPA_PLATFORM=cocoa "$app/Contents/MacOS/AmneziaVPN" --version
+          printf 'sha256=%s\n' "$(shasum -a 256 "${packages[0]}" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -108,7 +112,10 @@ jobs:
 
   verify_macos:
     name: macOS ${{ matrix.version }} upgrade and routes
-    if: ${{ inputs.macos_verify_run && inputs.macos_verify_sha256 }}
+    needs: macos
+    if: >-
+      ${{ !cancelled() && ((inputs.macos_verify_run && inputs.macos_verify_sha256) ||
+          (!inputs.macos_only && needs.macos.result == 'success')) }}
     runs-on: ${{ matrix.image }}
     timeout-minutes: 32
     permissions:
@@ -132,13 +139,13 @@ jobs:
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           name: coldwire-macos-unsigned
-          run-id: ${{ inputs.macos_verify_run }}
+          run-id: ${{ inputs.macos_verify_run || github.run_id }}
           path: installer
           github-token: ${{ github.token }}
 
       - name: Verify the candidate and install the previous release
         env:
-          CANDIDATE_SHA256: ${{ inputs.macos_verify_sha256 }}
+          CANDIDATE_SHA256: ${{ inputs.macos_verify_sha256 || needs.macos.outputs.pkg_sha256 }}
           MACOS_VERSION: ${{ matrix.version }}
         run: |
           test "$RUNNER_ENVIRONMENT" = github-hosted
@@ -358,16 +365,17 @@ jobs:
           retention-days: 7
 
   release:
-    needs: [windows, macos, android]
+    needs: [windows, macos, android, verify_macos]
     if: >-
       ${{ !cancelled() && !inputs.windows_only && !inputs.macos_only && !inputs.macos_verify_run && github.ref == 'refs/heads/feature/spa-admission' &&
           (inputs.existing_run || (needs.windows.result == 'success' &&
-          needs.macos.result == 'success' && needs.android.result == 'success')) }}
+          needs.macos.result == 'success' && needs.android.result == 'success' && needs.verify_macos.result == 'success')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       actions: read
       contents: write
+      statuses: read
     steps:
       - name: Resolve build artifacts
         id: source
@@ -383,8 +391,10 @@ jobs:
             commit=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" |
               jq -er --argjson workflow "$workflow" '
                 select(.workflow_id == $workflow and .head_branch == "feature/spa-admission" and .conclusion == "success") | .head_sha')
-            status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$commit...$GITHUB_SHA" --jq .status)
-            [[ "$status" == ahead || "$status" == identical ]]
+            [[ "$commit" == "$GITHUB_SHA" ]]
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs?per_page=100" | jq -e '
+              .jobs as $jobs | [15,26,27] | all(.[];
+                . as $version | any($jobs[]; .name == "macOS \($version) upgrade and routes" and .conclusion == "success"))' >/dev/null
             run_id="$SOURCE_RUN"
           fi
           printf 'run_id=%s\ncommit=%s\n' "$run_id" "$commit" >> "$GITHUB_OUTPUT"
@@ -395,33 +405,6 @@ jobs:
           run-id: ${{ steps.source.outputs.run_id }}
           pattern: 'coldwire-*'
           path: installers
-
-      - uses: android-actions/setup-android@v4
-        if: inputs.existing_run
-        with:
-          packages: build-tools;36.0.0
-
-      - name: Sign the existing Android APKs with the release key
-        if: inputs.existing_run
-        env:
-          KEYSTORE_BASE64: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE }}
-          KEYSTORE_PASSWORD: ${{ secrets.COLDWIRE_ANDROID_KEYSTORE_PASSWORD }}
-        run: |
-          umask 077
-          shopt -s nullglob
-          apks=(installers/coldwire-android9-10-arm64-test/*.apk installers/coldwire-android11-plus-arm64/*.apk)
-          test "${#apks[@]}" -ge 1
-          keystore="$RUNNER_TEMP/coldwire-android.p12"
-          trap 'rm -f -- "$keystore"' EXIT
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"
-          unset KEYSTORE_BASE64
-          signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-          for apk in "${apks[@]}"; do
-            "$signer" sign --ks "$keystore" --ks-key-alias coldwire-android \
-              --ks-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/coldwire.apk" "$apk"
-            "$signer" verify --print-certs "$RUNNER_TEMP/coldwire.apk"
-            mv "$RUNNER_TEMP/coldwire.apk" "$apk"
-          done
 
       - name: Publish installers
         env:
@@ -434,32 +417,33 @@ jobs:
           pkg=(installers/coldwire-macos-unsigned/*_macos_arm64.pkg)
           apk=(installers/coldwire-android9-10-arm64-test/*.apk)
           modern_apk=(installers/coldwire-android11-plus-arm64/*.apk)
-          test "${#msi[@]}:${#pkg[@]}:${#apk[@]}" = '1:1:1'
-          if [[ "$SOURCE_RUN" == "$GITHUB_RUN_ID" ]]; then
-            test "${#modern_apk[@]}" -eq 1
-          else
-            test "${#modern_apk[@]}" -le 1
+          test "${#msi[@]}:${#pkg[@]}:${#apk[@]}:${#modern_apk[@]}" = '1:1:1:1'
+          statuses=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE_COMMIT/status?per_page=100")
+          verify() {
+            local file="$1" context="$2" digest
+            digest=$(sha256sum "$file" | cut -d ' ' -f 1)
+            jq -e --arg context "coldwire/e2e/$context" --arg receipt "sha256:$digest" '
+              any(.statuses[]; .context == $context and .state == "success" and
+                .description == $receipt and (.target_url // "" | startswith("https://")))' <<< "$statuses" >/dev/null
+          }
+          if ! verify "${msi[0]}" windows || ! verify "${apk[0]}" android-9-10 || ! verify "${modern_apk[0]}" android-11-plus; then
+            echo 'Latest requires Windows and Android runtime results for these exact installers.'
+            if [[ "$SOURCE_RUN" == "$GITHUB_RUN_ID" ]]; then
+              exit 0
+            fi
+            exit 1
           fi
           mkdir dist
           mv "${msi[0]}" dist/COLDWIRE-Windows-x64.msi
           mv "${pkg[0]}" dist/COLDWIRE-macOS.pkg
           mv "${apk[0]}" dist/COLDWIRE-Android-9-10-arm64-v8a.apk
+          mv "${modern_apk[0]}" dist/COLDWIRE-Android-11-plus-arm64-v8a.apk
           cd dist
-          files=(COLDWIRE-Windows-x64.msi COLDWIRE-macOS.pkg COLDWIRE-Android-9-10-arm64-v8a.apk)
-          android_versions='9/10'
-          if (( ${#modern_apk[@]} )); then
-            mv "../${modern_apk[0]}" COLDWIRE-Android-11-plus-arm64-v8a.apk
-            files+=(COLDWIRE-Android-11-plus-arm64-v8a.apk)
-            android_versions='9/10 and 11+'
-          fi
+          files=(COLDWIRE-Windows-x64.msi COLDWIRE-macOS.pkg COLDWIRE-Android-9-10-arm64-v8a.apk COLDWIRE-Android-11-plus-arm64-v8a.apk)
           for file in "${files[@]}"; do test -s "$file"; done
           sha256sum "${files[@]}" > SHA256SUMS.txt
 
           tag="coldwire-spa-${SOURCE_COMMIT:0:12}"
-          latest=true
-          if [[ "$SOURCE_RUN" != "$GITHUB_RUN_ID" ]] && gh release view -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            latest=false
-          fi
           if release=$(gh release view "$tag" -R "$GITHUB_REPOSITORY" --json isDraft,targetCommitish); then
             test "$(jq -r .targetCommitish <<< "$release")" = "$SOURCE_COMMIT"
             if [[ $(jq -r .isDraft <<< "$release") == false ]]; then
@@ -468,7 +452,7 @@ jobs:
             fi
           else
             cat > notes.md <<EOF
-          Installers for Windows x64, Macs with Apple Silicon, and Android $android_versions on ARM64. All three support SPA with AmneziaWG.
+          Installers for Windows x64, Macs with Apple Silicon, and Android 9/10 or 11 and later on ARM64.
 
           The MSI and PKG are unsigned. The Android APKs use the COLDWIRE release key. Older CI APKs used a different key and need a fresh install.
 
@@ -480,4 +464,4 @@ jobs:
               --draft --title "COLDWIRE SPA ${SOURCE_COMMIT:0:12}" --notes-file notes.md
           fi
           gh release upload "$tag" "${files[@]}" SHA256SUMS.txt -R "$GITHUB_REPOSITORY" --clobber
-          gh release edit "$tag" -R "$GITHUB_REPOSITORY" --draft=false --latest="$latest"
+          gh release edit "$tag" -R "$GITHUB_REPOSITORY" --draft=false --latest

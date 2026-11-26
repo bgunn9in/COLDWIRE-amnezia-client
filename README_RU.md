@@ -10,3 +10,5 @@ COLDWIRE Amnezia VPN — форк AmneziaVPN. Перед подключение�
 - [Развернуть реле или управлять устройствами](https://github.com/bgunn9in/coldwire).
 
 GitHub Actions собирает установщики из ветки `feature/spa-admission`. В релизе есть контрольные суммы SHA-256 и ссылка на сборку. Приложение распространяется по [лицензии исходного проекта](LICENSE). [AmneziaVPN](https://github.com/amnezia-vpn/amnezia-client)
+
+Перед публикацией GitHub Actions проверяет обновление и маршруты на macOS. Результаты сквозных тестов MSI и обоих APK привязываются к контрольным суммам проверенных файлов. [Порядок выпуска](docs/releasing.md)
