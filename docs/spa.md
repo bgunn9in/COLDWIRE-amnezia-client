@@ -29,12 +29,13 @@ If your administrator gave you a converted administrator profile, the server sho
 
 The app sends an authenticated SPA request to A. A verifies that the client holds the device key and can receive a reply at its address, then admits that IPv4 for 120 seconds. The app starts AmneziaWG over the admitted route and normally refreshes the lease every 40 seconds. When your public IPv4 changes, the new address needs a fresh grant.
 
-The Windows and macOS apps must keep running to renew access. Android renews from the VPN service, so the app can stay in the background. SPA control packets use the path to A outside the VPN tunnel.
+After connection, the VPN service renews access on Windows, macOS and Android. Closing the window leaves the service running. SPA control packets use the path to A outside the VPN tunnel.
 
 ## If the connection fails
 
 - Check that the selected profile came from COLDWIRE and that the app is the COLDWIRE build. Ask the administrator to check whether the device key is still active.
 - If the app stays on **Connecting**, check reachability of A's SPA and AmneziaWG UDP ports. Tell the administrator when the attempt occurred and whether you had just switched networks.
+- Under **Logging**, choose **Save connection report** for a JSON file with the last connection stage, timing and error code. Keys, addresses and device names are omitted. While connected, this action also checks DNS and HTTPS access to GitHub.
 - To export diagnostics, open the app's logging settings and choose **Save all logs**. Share logs with the administrator. Keep `.vpn` files and keys out of public reports.
 
 [Server setup and routing diagram](https://github.com/bgunn9in/coldwire)

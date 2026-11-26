@@ -45,9 +45,11 @@ public slots:
     void onConnectionStateChanged(Vpn::ConnectionState state);
 
     void onTranslationsUpdated();
+    void exportConnectionReport(const QString &fileName);
 
 signals:
     void connectionStateChanged();
+    void connectionReportExported(bool saved, bool cancelled, const QString &result);
 
     void connectionErrorOccurred(ErrorCode errorCode);
 

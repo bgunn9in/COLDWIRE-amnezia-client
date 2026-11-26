@@ -1,11 +1,12 @@
 #ifndef VPNCONNECTION_H
 #define VPNCONNECTION_H
 
-#include <QObject>
+#include <QElapsedTimer>
 #include <QMetaObject>
-#include <QString>
-#include <QScopedPointer>
+#include <QObject>
 #include <QRemoteObjectNode>
+#include <QScopedPointer>
+#include <QString>
 #include <QTimer>
 
 #include "core/protocols/vpnProtocol.h"
@@ -37,6 +38,7 @@ public:
     static QString bytesPerSecToText(quint64 bytes);
 
     ErrorCode lastError() const;
+    QJsonObject connectionReport() const;
     Vpn::ConnectionState connectionState() const;
 
     QSharedPointer<VpnProtocol> vpnProtocol() const;
@@ -80,12 +82,13 @@ private:
     QJsonObject m_vpnConfiguration;
     QJsonObject m_routeMode;
     QString m_remoteAddress;
+    QString m_reportStage;
+    ErrorCode m_attemptError = ErrorCode::NoError;
+    QElapsedTimer m_reportTimer;
+    qint64 m_reportElapsed = -1;
 #ifdef AMNEZIA_DESKTOP_SPA
     SpaAdmission m_spa;
-    QTimer m_spaRenewal;
-    QHostAddress m_spaHost;
-    quint16 m_spaPort = 0;
-    QByteArray m_spaKey;
+    QTimer m_spaHandshakeTimeout;
     void stopSpa();
 #endif
     void startVpn(DockerContainer container, const QJsonObject &vpnConfiguration);

@@ -47,6 +47,7 @@ public:
     void onKillSwitchModeChanged(bool enabled);
 
     ErrorCode lastConnectionError() const;
+    QJsonObject connectionReport() const;
 
     bool isConnected() const;
     void setConnectionState(Vpn::ConnectionState state);

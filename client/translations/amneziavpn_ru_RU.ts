@@ -140,6 +140,22 @@
 <context>
     <name>ConnectionUiController</name>
     <message>
+        <source>Connection report saved</source>
+        <translation>Отчёт о соединении сохранён</translation>
+    </message>
+    <message>
+        <source>Connection report saved. GitHub responded over HTTPS.</source>
+        <translation>Отчёт сохранён. GitHub ответил по HTTPS.</translation>
+    </message>
+    <message>
+        <source>Connection report saved. DNS could not resolve GitHub.</source>
+        <translation>Отчёт сохранён. DNS не смог разрешить имя GitHub.</translation>
+    </message>
+    <message>
+        <source>Connection report saved. The GitHub HTTPS check failed.</source>
+        <translation>Отчёт сохранён. Проверка доступа к GitHub по HTTPS не прошла.</translation>
+    </message>
+    <message>
         <location filename="../ui/controllers/connectionUiController.cpp" line="59"/>
         <source>Connecting...</source>
         <translation>Подключение...</translation>
@@ -4735,6 +4751,22 @@ Only one can be active at a time: VPN or local proxy</source>
 <context>
     <name>PageSettingsLogging</name>
     <message>
+        <source>Save connection report</source>
+        <translation>Сохранить отчёт о соединении</translation>
+    </message>
+    <message>
+        <source>Omits keys and addresses. Checks GitHub over HTTPS when connected.</source>
+        <translation>Без ключей и адресов. При подключённом VPN проверяет доступ к GitHub по HTTPS.</translation>
+    </message>
+    <message>
+        <source>Could not save the connection report</source>
+        <translation>Не удалось сохранить отчёт о соединении</translation>
+    </message>
+    <message>
+        <source>JSON files (*.json)</source>
+        <translation>Файлы JSON (*.json)</translation>
+    </message>
+    <message>
         <location filename="../ui/qml/Pages2/PageSettingsLogging.qml" line="107"/>
         <source>Logging</source>
         <translation>Логирование</translation>
@@ -6247,6 +6279,14 @@ Only one can be active at a time: VPN or local proxy</source>
 </context>
 <context>
     <name>QObject</name>
+    <message>
+        <source>The entry node did not confirm SPA access.</source>
+        <translation>Входной узел не подтвердил допуск по SPA.</translation>
+    </message>
+    <message>
+        <source>The AmneziaWG handshake timed out after the entry node granted SPA access.</source>
+        <translation>Входной узел подтвердил допуск по SPA. Время ожидания рукопожатия AmneziaWG истекло.</translation>
+    </message>
     <message>
         <location filename="../core/utils/errorStrings.cpp" line="11"/>
         <source>No error</source>

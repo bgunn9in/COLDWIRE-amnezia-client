@@ -253,6 +253,11 @@ ErrorCode ConnectionController::lastConnectionError() const
     return m_vpnConnection->lastError();
 }
 
+QJsonObject ConnectionController::connectionReport() const
+{
+    return m_vpnConnection->connectionReport();
+}
+
 QJsonObject ConnectionController::createConnectionConfiguration(const QPair<QString, QString> &dns,
                                                               bool isApiConfig,
                                                               const QString &hostName,

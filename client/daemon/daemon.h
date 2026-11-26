@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <QTimer>
 
+#include "core/utils/spaAdmission.h"
 #include "daemon/daemonerrors.h"
 #include "daemonerrors.h"
 #include "dnsutils.h"
@@ -45,6 +46,11 @@ class Daemon : public QObject {
   QString logs();
   void cleanLogs();
 
+#ifdef AMNEZIA_DESKTOP_SPA
+  void setSpaEndpoint(std::optional<SpaEndpoint> endpoint);
+  void refreshSpa();
+#endif
+
  signals:
   void connected(const QString& pubkey);
   /**
@@ -59,6 +65,12 @@ class Daemon : public QObject {
   bool maybeUpdateResolvers(const InterfaceConfig& config);
   bool addExclusionRoute(const IPAddress& address);
   bool delExclusionRoute(const IPAddress& address);
+
+#ifdef AMNEZIA_DESKTOP_SPA
+  SpaAdmission m_spa;
+  QTimer m_spaRenewal;
+  std::optional<SpaEndpoint> m_spaEndpoint;
+#endif
 
  protected:
   virtual bool run(Op op, const InterfaceConfig& config) {

@@ -52,6 +52,10 @@ LocalServer::LocalServer(QObject *parent) : QObject(parent),
     m_networkWatcher.initialize();
     connect(&m_networkWatcher, &NetworkWatcher::networkChanged, &m_ipcServer, &IpcServer::networkChanged);
     connect(&m_networkWatcher, &NetworkWatcher::wakeup, &m_ipcServer, &IpcServer::wakeup);
+#ifdef AMNEZIA_DESKTOP_SPA
+    connect(&m_networkWatcher, &NetworkWatcher::networkChanged, &daemon, &Daemon::refreshSpa);
+    connect(&m_networkWatcher, &NetworkWatcher::wakeup, &daemon, &Daemon::refreshSpa);
+#endif
     KillSwitch::instance()->init();
 
 #ifdef Q_OS_LINUX

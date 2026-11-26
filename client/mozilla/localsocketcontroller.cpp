@@ -24,6 +24,7 @@
 #include "leakdetector.h"
 #include "logger.h"
 #include "daemon/daemonerrors.h"
+#include "core/utils/spaAdmission.h"
 
 #include "core/utils/protocolEnum.h"
 #include "core/protocols/protocolUtils.h"
@@ -157,6 +158,11 @@ void LocalSocketController::activate(const QJsonObject &rawConfig) {
   json.insert("deviceMTU", wgConfig.value(amnezia::configKey::mtu));
 
   json.insert("serverPort", wgConfig.value(amnezia::configKey::port).toInt());
+#ifdef AMNEZIA_DESKTOP_SPA
+  if (wgConfig.contains(amnezia::configKey::coldwireSpa)) {
+    json.insert("coldwireSpa", wgConfig.value(amnezia::configKey::coldwireSpa));
+  }
+#endif
   json.insert("serverIpv4Gateway", wgConfig.value(amnezia::configKey::hostName));
   //  json.insert("serverIpv6Gateway", QJsonValue(hop.m_server.ipv6Gateway()));
 

@@ -42,13 +42,16 @@ AndroidController::AndroidController() : QObject()
         Qt::QueuedConnection);
 
     connect(
-        this, &AndroidController::serviceError, this,
-        [this]() {
-            qDebug() << "Android event: service error";
-            // todo: add error message
-            emit connectionStateChanged(Vpn::ConnectionState::Error);
-        },
-        Qt::QueuedConnection);
+            this, &AndroidController::serviceError, this,
+            [this](int code) {
+                qDebug() << "Android event: service error";
+                m_connectionError =
+                        code == ErrorCode::ColdwireAdmissionFailed || code == ErrorCode::ColdwireHandshakeTimedOut
+                        ? static_cast<ErrorCode>(code)
+                        : ErrorCode::AndroidError;
+                emit connectionStateChanged(Vpn::ConnectionState::Error);
+            },
+            Qt::QueuedConnection);
 
     connect(
         this, &AndroidController::vpnPermissionRejected, this,
@@ -91,7 +94,7 @@ bool AndroidController::initialize()
     const JNINativeMethod methods[] = {
         {"onStatus", "(I)V", reinterpret_cast<void *>(onStatus)},
         {"onServiceDisconnected", "()V", reinterpret_cast<void *>(onServiceDisconnected)},
-        {"onServiceError", "()V", reinterpret_cast<void *>(onServiceError)},
+        {"onServiceError", "(I)V", reinterpret_cast<void *>(onServiceError)},
         {"onVpnPermissionRejected", "()V", reinterpret_cast<void *>(onVpnPermissionRejected)},
         {"onNotificationStateChanged", "()V", reinterpret_cast<void *>(onNotificationStateChanged)},
         {"onVpnStateChanged", "(I)V", reinterpret_cast<void *>(onVpnStateChanged)},
@@ -137,6 +140,7 @@ void AndroidController::callActivityMethod(const char *methodName, const char *s
 
 ErrorCode AndroidController::start(const QJsonObject &vpnConfig)
 {
+    m_connectionError = ErrorCode::NoError;
     isWaitingStatus = false;
     auto config = QJsonDocument(vpnConfig).toJson();
     callActivityMethod("start", "(Ljava/lang/String;)V",
@@ -581,12 +585,12 @@ void AndroidController::onServiceDisconnected(JNIEnv *env, jobject thiz)
 }
 
 // static
-void AndroidController::onServiceError(JNIEnv *env, jobject thiz)
+void AndroidController::onServiceError(JNIEnv *env, jobject thiz, jint code)
 {
     Q_UNUSED(env);
     Q_UNUSED(thiz);
 
-    emit AndroidController::instance()->serviceError();
+    emit AndroidController::instance()->serviceError(code);
 }
 
 // static

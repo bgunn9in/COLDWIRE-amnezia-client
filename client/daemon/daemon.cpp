@@ -36,7 +36,31 @@ Daemon::Daemon(QObject* parent) : QObject(parent) {
 
   m_handshakeTimer.setSingleShot(true);
   connect(&m_handshakeTimer, &QTimer::timeout, this, &Daemon::checkHandshake);
+#ifdef AMNEZIA_DESKTOP_SPA
+  m_spaRenewal.setSingleShot(true);
+  connect(&m_spaRenewal, &QTimer::timeout, this, [this] {
+    const auto& endpoint = *m_spaEndpoint;
+    m_spa.request(endpoint.host, endpoint.port, endpoint.key, [this](bool confirmed) {
+      m_spaRenewal.start(confirmed ? 40000 : 3000);
+    });
+  });
+#endif
 }
+
+#ifdef AMNEZIA_DESKTOP_SPA
+void Daemon::setSpaEndpoint(std::optional<SpaEndpoint> endpoint) {
+  m_spaRenewal.stop();
+  m_spa.cancel();
+  m_spaEndpoint = std::move(endpoint);
+  refreshSpa();
+}
+
+void Daemon::refreshSpa() {
+  if (m_spaEndpoint && (!m_spaRenewal.isActive() || m_spaRenewal.remainingTime() > 250)) {
+    m_spaRenewal.start(250);
+  }
+}
+#endif
 
 Daemon::~Daemon() {
   MZ_COUNT_DTOR(Daemon);
@@ -476,6 +500,9 @@ bool Daemon::parseConfig(const QJsonObject& obj, InterfaceConfig& config) {
 
 bool Daemon::deactivate(bool emitSignals) {
   Q_ASSERT(wgutils() != nullptr);
+#ifdef AMNEZIA_DESKTOP_SPA
+  setSpaEndpoint(std::nullopt);
+#endif
 
   // Deactivate the main interface.
   if (!m_connections.isEmpty()) {

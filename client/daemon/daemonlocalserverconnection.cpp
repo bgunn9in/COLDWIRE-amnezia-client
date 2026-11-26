@@ -111,10 +111,25 @@ void DaemonLocalServerConnection::parseCommand(const QByteArray& data) {
       return;
     }
 
+#ifdef AMNEZIA_DESKTOP_SPA
+    std::optional<SpaEndpoint> spa;
+    if (obj.contains("coldwireSpa")) {
+      spa = SpaEndpoint::fromConfig(obj.value("coldwireSpa"), config.m_serverIpv4AddrIn, config.m_serverPort);
+      if (!spa || config.m_hopType != InterfaceConfig::SingleHop) {
+        logger.error() << "Invalid COLDWIRE SPA configuration";
+        emit disconnected();
+        return;
+      }
+    }
+#endif
     if (!Daemon::instance()->activate(config)) {
       logger.error() << "Failed to activate the interface";
       emit disconnected();
+      return;
     }
+#ifdef AMNEZIA_DESKTOP_SPA
+    Daemon::instance()->setSpaEndpoint(std::move(spa));
+#endif
     return;
   }
 

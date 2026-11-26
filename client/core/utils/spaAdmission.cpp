@@ -2,9 +2,11 @@
 
 #include <QCryptographicHash>
 #include <QDateTime>
+#include <QJsonObject>
 #include <QMessageAuthenticationCode>
 #include <QNetworkDatagram>
 #include <QRandomGenerator>
+#include <QRegularExpression>
 #include <QtEndian>
 #include <utility>
 
@@ -28,6 +30,20 @@ namespace
         }
         return difference == 0;
     }
+}
+
+std::optional<SpaEndpoint> SpaEndpoint::fromConfig(const QJsonValue &value, const QString &address, int awgPort)
+{
+    const auto config = value.toObject();
+    const auto key = config.value("key").toString();
+    const auto port = config.value("port").toInt();
+    const QHostAddress host(address);
+    static const QRegularExpression keyFormat(QStringLiteral("\\A[0-9a-fA-F]{64}\\z"));
+    if (config.value("version").toInt() != 1 || !keyFormat.match(key).hasMatch() || port < 1 || port > 65535
+        || host.protocol() != QAbstractSocket::IPv4Protocol || port == awgPort) {
+        return std::nullopt;
+    }
+    return SpaEndpoint {host, static_cast<quint16>(port), QByteArray::fromHex(key.toLatin1())};
 }
 
 SpaAdmission::SpaAdmission(QObject *parent)

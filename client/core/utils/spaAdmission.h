@@ -4,10 +4,22 @@
 #include <QTimer>
 #include <QUdpSocket>
 #include <functional>
+#include <optional>
 
 #if defined(Q_OS_WIN) || (defined(Q_OS_MACOS) && !defined(MACOS_NE))
 #define AMNEZIA_DESKTOP_SPA
 #endif
+
+class QJsonValue;
+
+struct SpaEndpoint
+{
+    QHostAddress host;
+    quint16 port;
+    QByteArray key;
+
+    static std::optional<SpaEndpoint> fromConfig(const QJsonValue &value, const QString &host, int awgPort);
+};
 
 class SpaAdmission : public QObject
 {

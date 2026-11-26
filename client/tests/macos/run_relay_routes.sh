@@ -108,6 +108,11 @@ fi
 tar -C "$source_path/admin-panel" -czf - exit_config.py convert_profile.py ru-services.amnezia.json \
     ru-direct.amnezia.json dist/awg-native-linux-amd64.tar.gz |
     "${guest[@]}" "sudo tar -xzf - -C $guest_root/panel"
+(
+    cd "$source_path/admin-panel/servers/spa"
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/coldwire-spa" .
+)
+"${guest[@]}" "sudo sh -c 'cat > $guest_root/tools/coldwire-spa && chmod 755 $guest_root/tools/coldwire-spa'" < "$work/coldwire-spa"
 "${guest[@]}" "sudo tee $guest_root/prepare.py >/dev/null" < "$test_path/prepare_relay_guest.py"
 if ! "${guest[@]}" "sudo /usr/bin/python3 $guest_root/prepare.py"; then
     "${guest[@]}" 'sudo journalctl -u cw-mac-observer --no-pager -n 20; sudo ip netns exec cw-mac-observer ss -ltn' || true
