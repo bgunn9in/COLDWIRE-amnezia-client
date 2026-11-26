@@ -22,11 +22,12 @@ jobs:
             artifact: coldwire-android9-10-arm64-test
             sha256: e27a61805a590965df72bd3e6626359ff4bc2abcc5b53dde540b567c2f84bd0a
           - api: 34
-            host: macos-latest
+            host: xcode-27
             artifact: coldwire-android11-plus-arm64
             sha256: 553927ab06872419cbe0dc9891ba0ed0fe6d81173715b784d950eb8da58b0c92
     env:
       IMAGE: system-images;android-${{ matrix.api }};default;arm64-v8a
+      ANDROID_I_WANT_MY_TCG: 'yes'
     steps:
       - uses: actions/setup-java@v4
         with:
