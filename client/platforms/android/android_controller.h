@@ -31,6 +31,10 @@ public:
     };
 
     ErrorCode start(const QJsonObject &vpnConfig);
+    ErrorCode lastConnectionError() const
+    {
+        return m_connectionError;
+    }
     void stop();
     void resetLastServer(int serverIndex);
     void saveFile(const QString &fileName, const QString &data);
@@ -74,7 +78,7 @@ signals:
     void connectionStateChanged(Vpn::ConnectionState state);
     void status(ConnectionState state);
     void serviceDisconnected();
-    void serviceError();
+    void serviceError(int code);
     void vpnPermissionRejected();
     void notificationStateChanged();
     void vpnStateChanged(ConnectionState state);
@@ -92,6 +96,7 @@ signals:
 
 private:
     bool isWaitingStatus = true;
+    ErrorCode m_connectionError = ErrorCode::NoError;
 
     static jclass log;
     static jmethodID logDebug;
@@ -110,7 +115,7 @@ private:
     // JNI functions called by Android
     static void onStatus(JNIEnv *env, jobject thiz, jint stateCode);
     static void onServiceDisconnected(JNIEnv *env, jobject thiz);
-    static void onServiceError(JNIEnv *env, jobject thiz);
+    static void onServiceError(JNIEnv *env, jobject thiz, jint code);
     static void onVpnPermissionRejected(JNIEnv *env, jobject thiz);
     static void onNotificationStateChanged(JNIEnv *env, jobject thiz);
     static void onVpnStateChanged(JNIEnv *env, jobject thiz, jint stateCode);

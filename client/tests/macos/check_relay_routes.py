@@ -5,6 +5,7 @@ from pathlib import Path
 import plistlib
 import re
 import secrets
+import signal
 import socket
 import subprocess
 import sys
@@ -275,6 +276,14 @@ def main(root, physical, outer):
                     print(f'PASS macOS IPv4 {mode}: observer={seen}', flush=True)
                     sample_ipv6(outer, tunnel)
                     print(f'PASS macOS IPv6 {mode}: the firewall blocked the isolated probe', flush=True)
+                    if mode == 'ru-direct':
+                        client.send_signal(signal.SIGSTOP)
+                        try:
+                            time.sleep(125)
+                            assert sample(targets[-1], exit_ip, physical, tunnel) == exit_ip
+                        finally:
+                            client.send_signal(signal.SIGCONT)
+                        print('PASS macOS SPA renewal after 125 seconds without the user interface', flush=True)
                 except Exception:
                     lines = (root / f'client-{mode}.log').read_text(errors='replace').splitlines()
                     notes = [line for line in lines if re.search(r'connect|import|split tunneling|error|failed|handshake|started', line, re.I)]

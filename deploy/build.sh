@@ -129,7 +129,7 @@ case "$TARGET" in
     android)
         no_installers=1
         : ${CMAKE_GENERATOR:="Ninja"}
-        : ${ANDROID_PLATFORM:="android-${APP_ANDROID_MIN_SDK:-28}"}
+        : ${ANDROID_PLATFORM:="android-${APP_ANDROID_MIN_SDK:-29}"}
 
         if [[ -n "$SIGN" ]]; then
             QT_ANDROID_SIGN_APK=TRUE

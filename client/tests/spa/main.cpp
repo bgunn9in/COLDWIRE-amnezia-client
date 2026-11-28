@@ -13,6 +13,15 @@ int main(int argc, char **argv)
     const QJsonObject spa = { { "version", 1 }, { "port", 62201 }, { "key", QString(64, u'a') } };
     auto protectedAwg = normalAwg;
     protectedAwg["coldwireSpa"] = spa;
+    const auto endpoint = SpaEndpoint::fromConfig(spa, QStringLiteral("192.0.2.1"), 32497);
+    auto invalid = spa;
+    invalid["key"] = QString(64, u'z');
+    if (!endpoint || endpoint->port != 62201 || endpoint->key != QByteArray(32, char(0xaa))
+        || SpaEndpoint::fromConfig(spa, QStringLiteral("::1"), 32497)
+        || SpaEndpoint::fromConfig(spa, QStringLiteral("192.0.2.1"), 62201)
+        || SpaEndpoint::fromConfig(invalid, QStringLiteral("192.0.2.1"), 32497)) {
+        return 5;
+    }
     auto roundTrip = amnezia::AwgClientConfig::fromJson(normalAwg).toJson();
     if (!roundTrip.take("coldwireSpa").isUndefined()
         || amnezia::AwgClientConfig::fromJson(protectedAwg).toJson().value("coldwireSpa") != spa) {

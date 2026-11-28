@@ -196,10 +196,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - version: '9/10'
-            min_sdk: '28'
+          - version: '10'
+            min_sdk: '29'
             max_sdk: '29'
-            artifact: coldwire-android9-10-arm64-test
+            artifact: coldwire-android10-arm64
           - version: '11+'
             min_sdk: '30'
             max_sdk: ''
@@ -409,7 +409,7 @@ jobs:
         run: |
           umask 077
           shopt -s nullglob
-          apks=(installers/coldwire-android9-10-arm64-test/*.apk installers/coldwire-android11-plus-arm64/*.apk)
+          apks=(installers/coldwire-android10-arm64/*.apk installers/coldwire-android11-plus-arm64/*.apk)
           test "${#apks[@]}" -ge 1
           keystore="$RUNNER_TEMP/coldwire-android.p12"
           trap 'rm -f -- "$keystore"' EXIT
@@ -432,7 +432,7 @@ jobs:
           shopt -s nullglob
           msi=(installers/coldwire-windows-x64-unsigned/*.msi)
           pkg=(installers/coldwire-macos-unsigned/*_macos_arm64.pkg)
-          apk=(installers/coldwire-android9-10-arm64-test/*.apk)
+          apk=(installers/coldwire-android10-arm64/*.apk)
           modern_apk=(installers/coldwire-android11-plus-arm64/*.apk)
           test "${#msi[@]}:${#pkg[@]}:${#apk[@]}" = '1:1:1'
           if [[ "$SOURCE_RUN" == "$GITHUB_RUN_ID" ]]; then
@@ -443,14 +443,14 @@ jobs:
           mkdir dist
           mv "${msi[0]}" dist/COLDWIRE-Windows-x64.msi
           mv "${pkg[0]}" dist/COLDWIRE-macOS.pkg
-          mv "${apk[0]}" dist/COLDWIRE-Android-9-10-arm64-v8a.apk
+          mv "${apk[0]}" dist/COLDWIRE-Android-10-arm64-v8a.apk
           cd dist
-          files=(COLDWIRE-Windows-x64.msi COLDWIRE-macOS.pkg COLDWIRE-Android-9-10-arm64-v8a.apk)
-          android_versions='9/10'
+          files=(COLDWIRE-Windows-x64.msi COLDWIRE-macOS.pkg COLDWIRE-Android-10-arm64-v8a.apk)
+          android_versions='10'
           if (( ${#modern_apk[@]} )); then
             mv "../${modern_apk[0]}" COLDWIRE-Android-11-plus-arm64-v8a.apk
             files+=(COLDWIRE-Android-11-plus-arm64-v8a.apk)
-            android_versions='9/10 and 11+'
+            android_versions='10 and later'
           fi
           for file in "${files[@]}"; do test -s "$file"; done
           sha256sum "${files[@]}" > SHA256SUMS.txt

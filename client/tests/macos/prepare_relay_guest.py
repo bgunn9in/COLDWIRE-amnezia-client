@@ -107,15 +107,17 @@ def configure():
         netns('cw-mac-observer', 'ip', 'addr', 'add', address + '/32', 'dev', 'lo')
         run('ip', 'route', 'add', address + '/32', 'via', OBSERVER)
     for namespace, command in ((None, f'''
-table ip cw_mac_lab {{
+table inet coldwire_access {{
+    set spa_clients {{ type ipv4_addr; flags timeout; }}
     chain entry {{
         type nat hook prerouting priority dstnat; policy accept;
         ip saddr {PROVIDER} ip daddr {ENTRY} udp dport 32497 dnat to {EXIT}:51820
     }}
     chain forward {{
         type filter hook forward priority filter; policy drop;
+        ip saddr @spa_clients ip daddr {EXIT} udp dport 51820 accept
+        ip daddr {EXIT} udp dport 51820 drop
         ct state established,related accept
-        ip saddr {PROVIDER} ip daddr {EXIT} udp dport 51820 accept
         ip saddr {{ {PROVIDER}, {EXIT} }} ip daddr {{ {', '.join(targets)} }} tcp dport 18080 accept
     }}
 }}'''), (NAMESPACE, f'''
@@ -140,8 +142,12 @@ table ip cw_mac_nat {{
     name = 'macos-lab'
     state['clients'][name] = {'address': '10.8.1.2', 'public_key': peer_public}
     profile = exit_config.client_profile(state, name, peer, peer_public, '10.8.1.2')
-    profile = exit_config.convert(profile, ENTRY, 32497)
+    spa_key = secrets.token_hex(32)
+    profile = exit_config.convert(profile, ENTRY, 32497, spa_key=spa_key)
     exit_config.write_private(ROOT / 'client.vpn', encode(profile))
+    spa_config = ROOT / 'spa-keys.json'
+    exit_config.write_private(spa_config, json.dumps(dict(cookie_key=secrets.token_hex(32), devices=[spa_key])))
+    run('systemd-run', '--unit=cw-mac-spa', TOOLS / 'coldwire-spa', '--bind', ENTRY, '--keys', spa_config)
 
     run('systemd-run', '--unit=cw-mac-observer', '/usr/sbin/ip', 'netns', 'exec', 'cw-mac-observer',
         sys.executable, __file__, 'observe')

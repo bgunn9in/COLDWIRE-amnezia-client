@@ -1,7 +1,10 @@
 message("Client android ${CMAKE_ANDROID_ARCH_ABI} build")
 
 if(NOT DEFINED APP_ANDROID_MIN_SDK)
-    set(APP_ANDROID_MIN_SDK 28)
+    set(APP_ANDROID_MIN_SDK 29)
+endif()
+if(APP_ANDROID_MIN_SDK LESS 29)
+    message(FATAL_ERROR "COLDWIRE requires Android 10 (API 29) or later")
 endif()
 
 # Option to build Play variant (with Google Play Billing) instead of OSS

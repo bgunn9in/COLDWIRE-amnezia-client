@@ -5,7 +5,6 @@
 #include <QFile>
 #include <QHostInfo>
 #include <QJsonObject>
-#include <QRegularExpression>
 #include <QObject>
 #include <QSharedPointer>
 #include <QString>
@@ -37,23 +36,29 @@
 
 using namespace ProtocolUtils;
 
-VpnConnection::VpnConnection(SecureServersRepository* serversRepository, SecureAppSettingsRepository* appSettingsRepository, QObject *parent)
+VpnConnection::VpnConnection(SecureServersRepository *serversRepository,
+                             SecureAppSettingsRepository *appSettingsRepository, QObject *parent)
     : QObject(parent),
       m_serversRepository(serversRepository),
       m_appSettingsRepository(appSettingsRepository),
 #ifdef AMNEZIA_DESKTOP_SPA
       m_spa(this),
-      m_spaRenewal(this),
+      m_spaHandshakeTimeout(this),
 #endif
       m_checkTimer(this),
       m_connectionState(Vpn::ConnectionState::Disconnected)
 {
 #ifdef AMNEZIA_DESKTOP_SPA
-    m_spaRenewal.setSingleShot(true);
-    connect(&m_spaRenewal, &QTimer::timeout, this, [this] {
-        m_spa.request(m_spaHost, m_spaPort, m_spaKey, [this](bool confirmed) {
-            m_spaRenewal.start(confirmed ? 40000 : 3000);
-        });
+    m_spaHandshakeTimeout.setSingleShot(true);
+    connect(&m_spaHandshakeTimeout, &QTimer::timeout, this, [this] {
+        if (m_connectionState != Vpn::Connecting) {
+            return;
+        }
+        m_attemptError = ErrorCode::ColdwireHandshakeTimedOut;
+        setConnectionState(Vpn::Error);
+        if (m_vpnProtocol) {
+            m_vpnProtocol->stop();
+        }
     });
 #endif
 #if defined(Q_OS_IOS) || defined(MACOS_NE)
@@ -318,6 +323,9 @@ void VpnConnection::disconnectSlots()
 
 ErrorCode VpnConnection::lastError() const
 {
+    if (m_attemptError != ErrorCode::NoError) {
+        return m_attemptError;
+    }
 #ifdef Q_OS_ANDROID
     return ErrorCode::AndroidError;
 #endif
@@ -329,6 +337,19 @@ ErrorCode VpnConnection::lastError() const
     return m_vpnProtocol.data()->lastError();
 }
 
+QJsonObject VpnConnection::connectionReport() const
+{
+    QJsonObject report { { "version", 1 } };
+    if (!m_reportStage.isEmpty()) {
+        report.insert("stage", m_reportStage);
+        report.insert("elapsed_ms", m_reportElapsed >= 0 ? m_reportElapsed : m_reportTimer.elapsed());
+        if (m_attemptError != ErrorCode::NoError) {
+            report.insert("error_code", static_cast<int>(m_attemptError));
+        }
+    }
+    return report;
+}
+
 Vpn::ConnectionState VpnConnection::connectionState() const
 {
     return m_connectionState;
@@ -336,6 +357,10 @@ Vpn::ConnectionState VpnConnection::connectionState() const
 
 void VpnConnection::connectToVpn(const QString &serverId, DockerContainer container, const QJsonObject &vpnConfiguration)
 {
+    m_attemptError = ErrorCode::NoError;
+    m_reportStage = QStringLiteral("tunnel_start");
+    m_reportTimer.start();
+    m_reportElapsed = -1;
 #ifdef AMNEZIA_DESKTOP_SPA
     stopSpa();
 #endif
@@ -355,34 +380,29 @@ void VpnConnection::connectToVpn(const QString &serverId, DockerContainer contai
 #ifndef Q_OS_ANDROID
     if (ContainerUtils::isAwgContainer(container)) {
         const auto dataKey = key_proto_config_data(Proto::Awg);
-        auto data = vpnConfiguration.value(dataKey).toObject();
-        const auto spaValue = data.take(configKey::coldwireSpa);
+        const auto data = vpnConfiguration.value(dataKey).toObject();
+        const auto spaValue = data.value(configKey::coldwireSpa);
         if (!spaValue.isUndefined()) {
 #ifdef AMNEZIA_DESKTOP_SPA
-            const auto spa = spaValue.toObject();
-            const int port = spa.value("port").toInt();
-            const auto key = spa.value("key").toString();
-            const QHostAddress host(data.value(configKey::hostName).toString());
-            static const QRegularExpression validKey(QStringLiteral("\\A[0-9a-fA-F]{64}\\z"));
-            if (spa.value("version").toInt() != 1 || !validKey.match(key).hasMatch() || port < 1 || port > 65535
-                || host.protocol() != QAbstractSocket::IPv4Protocol || port == data.value(configKey::port).toInt()) {
+            m_reportStage = QStringLiteral("spa");
+            const auto spa = SpaEndpoint::fromConfig(spaValue, data.value(configKey::hostName).toString(),
+                                                      data.value(configKey::port).toInt());
+            if (!spa) {
+                m_attemptError = ErrorCode::ImportInvalidConfigError;
                 setConnectionState(Vpn::ConnectionState::Error);
                 emit vpnProtocolError(ErrorCode::ImportInvalidConfigError);
                 return;
             }
-            auto cleanConfig = vpnConfiguration;
-            cleanConfig.insert(dataKey, data);
-            m_spaHost = host;
-            m_spaPort = static_cast<quint16>(port);
-            m_spaKey = QByteArray::fromHex(key.toLatin1());
-            m_spa.request(m_spaHost, m_spaPort, m_spaKey, [this, container, cleanConfig](bool confirmed) {
+            m_spa.request(spa->host, spa->port, spa->key, [this, container, vpnConfiguration](bool confirmed) {
                 if (!confirmed) {
+                    m_attemptError = ErrorCode::ColdwireAdmissionFailed;
                     setConnectionState(Vpn::ConnectionState::Error);
-                    emit vpnProtocolError(ErrorCode::ServerCheckFailed);
+                    emit vpnProtocolError(m_attemptError);
                     return;
                 }
-                m_spaRenewal.start(40000);
-                startVpn(container, cleanConfig);
+                m_reportStage = QStringLiteral("awg_handshake");
+                m_spaHandshakeTimeout.start(30000);
+                startVpn(container, vpnConfiguration);
             });
 #else
             setConnectionState(Vpn::ConnectionState::Error);
@@ -625,11 +645,6 @@ void VpnConnection::reconnectToVpn() {
     }
 
     qDebug() << "Reconnect triggered. Reconnecting to the server";
-#ifdef AMNEZIA_DESKTOP_SPA
-    if (!m_spaKey.isEmpty()) {
-        m_spaRenewal.start(0);
-    }
-#endif
 
     setConnectionState(Vpn::ConnectionState::Reconnecting);
 
@@ -685,7 +700,32 @@ void VpnConnection::setConnectionState(Vpn::ConnectionState state) {
     if (state == Vpn::Disconnected && m_connectionState == Vpn::Reconnecting)
         return;
 
+    if (m_reportTimer.isValid() && m_reportElapsed < 0) {
+        if (state == Vpn::Connected) {
+            m_reportStage = QStringLiteral("connected");
+        }
+        if (state == Vpn::Error && m_attemptError == ErrorCode::NoError) {
+#if defined(Q_OS_ANDROID)
+            m_attemptError = AndroidController::instance()->lastConnectionError();
+            if (m_attemptError == ErrorCode::ColdwireAdmissionFailed) {
+                m_reportStage = QStringLiteral("spa");
+            } else if (m_attemptError == ErrorCode::ColdwireHandshakeTimedOut) {
+                m_reportStage = QStringLiteral("awg_handshake");
+            }
+#endif
+            if (m_attemptError == ErrorCode::NoError) {
+                m_attemptError = lastError();
+            }
+        }
+        if (state == Vpn::Connected || state == Vpn::Error || state == Vpn::Disconnected) {
+            m_reportElapsed = m_reportTimer.elapsed();
+        }
+    }
+
 #ifdef AMNEZIA_DESKTOP_SPA
+    if (state == Vpn::Connected) {
+        m_spaHandshakeTimeout.stop();
+    }
     if (state == Vpn::Disconnected || state == Vpn::ConnectionState::Error) {
         stopSpa();
     }
@@ -698,7 +738,6 @@ void VpnConnection::setConnectionState(Vpn::ConnectionState state) {
 void VpnConnection::stopSpa()
 {
     m_spa.cancel();
-    m_spaRenewal.stop();
-    m_spaKey.clear();
+    m_spaHandshakeTimeout.stop();
 }
 #endif

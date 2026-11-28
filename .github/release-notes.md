@@ -1,9 +1,8 @@
 ## Version differences
 
 ### Android
-* For Android version 11 and higher, you need to use .apk that start with - AmneziaVPN_${VERSION}_android11+
-* For Android version 9-10, you need to use .apk that start with - AmneziaVPN_${VERSION}_android9-10
-* ***The app version for Android 7 and 8 is temporarily unavailable***
+* On Android 10, use `COLDWIRE-Android-10-arm64-v8a.apk`.
+* On Android 11 and later, use `COLDWIRE-Android-11-plus-arm64-v8a.apk`.
 
 ### macOS
 !!! The previous version (4.8.8.2 and lower) of the application (installed via the .dmg installer) must be uninstalled via “move to bin” in the applications folder

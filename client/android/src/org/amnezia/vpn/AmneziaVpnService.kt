@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.amnezia.vpn.protocol.BadConfigException
 import org.amnezia.vpn.protocol.ProtocolState.CONNECTED
 import org.amnezia.vpn.protocol.ProtocolState.CONNECTING
@@ -66,6 +67,9 @@ const val ACTION_CONNECT = "org.amnezia.vpn.action.connect"
 
 const val MSG_VPN_CONFIG = "VPN_CONFIG"
 const val MSG_ERROR = "ERROR"
+const val MSG_ERROR_CODE = "ERROR_CODE"
+private const val SPA_ADMISSION_FAILED = 704
+private const val AWG_HANDSHAKE_TIMED_OUT = 705
 const val MSG_SAVE_LOGS = "SAVE_LOGS"
 const val MSG_CLIENT_NAME = "CLIENT_NAME"
 
@@ -531,11 +535,22 @@ open class AmneziaVpnService : VpnService() {
                 } else null
                 spaAdmission = admission
                 if (admission?.authorize(::protect) == false) {
-                    throw VpnStartException("SPA admission timed out")
+                    onError("SPA admission timed out", SPA_ADMISSION_FAILED)
+                    spaAdmission = null
+                    protocolState.value = DISCONNECTED
+                    return@launch
                 }
                 ensureActive()
                 protocol.initialize(applicationContext, protocolState, ::onError)
                 protocol.startVpn(config, Builder(), ::protect)
+                if (admission != null && withTimeoutOrNull(30_000L) {
+                        protocolState.first { it == CONNECTED || it == DISCONNECTED }
+                    } == null) {
+                    onError("AmneziaWG handshake timed out", AWG_HANDSHAKE_TIMED_OUT)
+                    spaAdmission = null
+                    protocol.stopVpn()
+                    return@launch
+                }
                 admission?.renew(::protect, confirmed = true) { !isDisconnected }
             }
         }
@@ -591,11 +606,16 @@ open class AmneziaVpnService : VpnService() {
      * Utils methods
      */
     private fun onError(msg: String) {
+        onError(msg, 0)
+    }
+
+    private fun onError(msg: String, code: Int) {
         Log.e(TAG, msg)
         mainScope.launch {
             clientMessengers.send {
                 ServiceEvent.ERROR.packToMessage {
                     putString(MSG_ERROR, msg)
+                    putInt(MSG_ERROR_CODE, code)
                 }
             }
         }

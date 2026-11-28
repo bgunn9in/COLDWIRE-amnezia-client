@@ -133,8 +133,7 @@ class AmneziaActivity : QtActivity() {
                         msg.data?.getString(MSG_ERROR)?.let { error ->
                             Log.e(TAG, "From VpnService: $error")
                         }
-                        // todo: add error reporting to Qt
-                        QtAndroidController.onServiceError()
+                        QtAndroidController.onServiceError(msg.data?.getInt(MSG_ERROR_CODE) ?: 0)
                     }
                 }
             }

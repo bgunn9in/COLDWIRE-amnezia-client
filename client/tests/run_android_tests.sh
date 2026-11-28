@@ -27,7 +27,7 @@ set -euo pipefail
 QT_ROOT="${QT_ROOT:?set QT_ROOT to your Qt installation, e.g. ~/Qt/6.10.1}"
 ANDROID_SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?set ANDROID_HOME to your Android SDK}}"
 NDK_VERSION="${NDK_VERSION:-27.3.13750724}"
-ANDROID_PLATFORM="${ANDROID_PLATFORM:-android-28}"
+ANDROID_PLATFORM="${ANDROID_PLATFORM:-android-29}"
 # x86_64: recommended for emulators (HVF/Rosetta hardware acceleration works, no GL crashes)
 # arm64-v8a: for physical ARM devices only (arm64 emulators have OpenGL bugs on Apple Silicon)
 ABI="${ABI:-x86_64}"

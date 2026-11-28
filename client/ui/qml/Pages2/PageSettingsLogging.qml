@@ -16,6 +16,7 @@ PageType {
     id: root
 
     property bool exportPending: false
+    property bool reportPending: false
 
     Component.onCompleted: {
         LogsController.refreshSizes()
@@ -50,6 +51,32 @@ PageType {
         LogsController.refreshSizes()
         PageController.showBusyIndicator(false)
         PageController.showNotificationMessage(qsTr("Logs have been cleaned up"))
+    }
+
+    function saveConnectionReport() {
+        var fileName = "COLDWIRE-connection.json"
+        if (!GC.isMobile()) {
+            fileName = SystemController.getFileName(qsTr("Save"), qsTr("JSON files (*.json)"),
+                                                    StandardPaths.standardLocations(StandardPaths.DocumentsLocation) + "/" + fileName,
+                                                    true, ".json")
+        }
+        if (fileName !== "") {
+            root.reportPending = true
+            ConnectionController.exportConnectionReport(fileName)
+        }
+    }
+
+    Connections {
+        target: ConnectionController
+
+        function onConnectionReportExported(saved, cancelled, result) {
+            root.reportPending = false
+            if (saved) {
+                PageController.showNotificationMessage(result)
+            } else if (!cancelled) {
+                PageController.showNotificationMessage(qsTr("Could not save the connection report"))
+            }
+        }
     }
 
     AlertDialogType {
@@ -211,6 +238,16 @@ PageType {
                         onClicked: {
                             root.saveAll()
                         }
+                    }
+
+                    ListItemType {
+                        Layout.fillWidth: true
+                        enabled: !root.reportPending
+                        text: qsTr("Save connection report")
+                        subtitle: qsTr("Omits keys and addresses. Checks GitHub over HTTPS when connected.")
+                        icon.source: "qrc:/images/controls/save.svg"
+
+                        onClicked: root.saveConnectionReport()
                     }
 
                     ListItemType {

@@ -1,5 +1,12 @@
 #include "connectionUiController.h"
 
+#include <QElapsedTimer>
+#include <QJsonDocument>
+#include <QNetworkAccessManager>
+#include <QNetworkProxy>
+#include <QNetworkReply>
+#include <QTimer>
+
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(MACOS_NE)
     #include <QGuiApplication>
 #else
@@ -10,6 +17,7 @@
 #include "core/controllers/serversController.h"
 #include "core/models/containerConfig.h"
 #include "core/utils/containerEnum.h"
+#include "systemController.h"
 
 ConnectionUiController::ConnectionUiController(ConnectionController* connectionController,
                                                 ServersController* serversController,
@@ -49,6 +57,50 @@ void ConnectionUiController::closeConnection()
 ErrorCode ConnectionUiController::getLastConnectionError()
 {
     return m_connectionController->lastConnectionError();
+}
+
+void ConnectionUiController::exportConnectionReport(const QString &fileName)
+{
+    auto save = [this, fileName](const QJsonObject &report, const QString &result) {
+        bool cancelled = false;
+        const bool saved = SystemController::saveFile(fileName, QJsonDocument(report).toJson(),
+                                                      QStringLiteral("application/json"), &cancelled);
+        emit connectionReportExported(saved, cancelled, result);
+    };
+    auto report = m_connectionController->connectionReport();
+    if (!isConnected()) {
+        report.insert("https_check", "not_connected");
+        save(report, tr("Connection report saved"));
+        return;
+    }
+
+    auto *manager = new QNetworkAccessManager(this);
+    manager->setProxy(QNetworkProxy::NoProxy);
+    QNetworkRequest request(QUrl(QStringLiteral("https://github.com/")));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+    QElapsedTimer elapsed;
+    elapsed.start();
+    auto *reply = manager->head(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, manager, report, elapsed, save]() mutable {
+        QString result;
+        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).isValid()) {
+            report.insert("https_check", "reachable");
+            result = tr("Connection report saved. GitHub responded over HTTPS.");
+        } else if (reply->error() == QNetworkReply::HostNotFoundError) {
+            report.insert("https_check", "dns_failed");
+            result = tr("Connection report saved. DNS could not resolve GitHub.");
+        } else {
+            report.insert("https_check", "unreachable");
+            result = tr("Connection report saved. The GitHub HTTPS check failed.");
+        }
+        report.insert("https_elapsed_ms", elapsed.elapsed());
+        manager->deleteLater();
+        save(report, result);
+    });
+    QTimer::singleShot(6000, reply, [reply] {
+        if (reply->isRunning())
+            reply->abort();
+    });
 }
 
 void ConnectionUiController::onConnectionStateChanged(Vpn::ConnectionState state)

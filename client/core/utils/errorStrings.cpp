@@ -7,6 +7,13 @@ QString errorString(ErrorCode code) {
 
     switch (code) {
 
+    case ErrorCode::ColdwireAdmissionFailed:
+        errorMessage = QObject::tr("The entry node did not confirm SPA access.");
+        break;
+    case ErrorCode::ColdwireHandshakeTimedOut:
+        errorMessage = QObject::tr("The AmneziaWG handshake timed out after the entry node granted SPA access.");
+        break;
+
     // General error codes
     case(ErrorCode::NoError): errorMessage = QObject::tr("No error"); break;
     case(ErrorCode::UnknownError): errorMessage = QObject::tr("Unknown error"); break;

@@ -119,6 +119,11 @@ if (WIN32 OR APPLE OR LINUX)
     )
 endif()
 
+if(WIN32 OR APPLE)
+    list(APPEND HEADERS ${CMAKE_CURRENT_LIST_DIR}/../../client/core/utils/spaAdmission.h)
+    list(APPEND SOURCES ${CMAKE_CURRENT_LIST_DIR}/../../client/core/utils/spaAdmission.cpp)
+endif()
+
 set(RESOURCES)
 
 if(WIN32)
