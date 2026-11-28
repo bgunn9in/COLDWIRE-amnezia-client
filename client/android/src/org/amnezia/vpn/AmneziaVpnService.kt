@@ -201,8 +201,7 @@ open class AmneziaVpnService : VpnService() {
     private val foregroundServiceTypeCompat
         get() = when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> FOREGROUND_SERVICE_TYPE_MANIFEST
-            else -> 0
+            else -> FOREGROUND_SERVICE_TYPE_MANIFEST
         }
 
     private val serviceNotification: ServiceNotification by lazy(NONE) { ServiceNotification(this) }
@@ -315,22 +314,20 @@ open class AmneziaVpnService : VpnService() {
             }
         }
 
-        notificationStateReceiver = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            registerBroadcastReceiver(
-                arrayOf(
-                    NotificationManager.ACTION_NOTIFICATION_CHANNEL_BLOCK_STATE_CHANGED,
-                    NotificationManager.ACTION_APP_BLOCK_STATE_CHANGED
-                )
-            ) {
-                val state = it?.getBooleanExtra(NotificationManager.EXTRA_BLOCKED_STATE, false)
-                Log.v(TAG, "Notification state changed: ${it?.action}, blocked = $state")
-                if (state == false) {
-                    enableNotification()
-                } else {
-                    disableNotification()
-                }
+        notificationStateReceiver = registerBroadcastReceiver(
+            arrayOf(
+                NotificationManager.ACTION_NOTIFICATION_CHANNEL_BLOCK_STATE_CHANGED,
+                NotificationManager.ACTION_APP_BLOCK_STATE_CHANGED
+            )
+        ) {
+            val state = it?.getBooleanExtra(NotificationManager.EXTRA_BLOCKED_STATE, false)
+            Log.v(TAG, "Notification state changed: ${it?.action}, blocked = $state")
+            if (state == false) {
+                enableNotification()
+            } else {
+                disableNotification()
             }
-        } else null
+        }
 
         registerScreenStateBroadcastReceivers()
     }

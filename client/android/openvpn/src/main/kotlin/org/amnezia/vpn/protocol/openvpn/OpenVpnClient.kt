@@ -1,7 +1,6 @@
 package org.amnezia.vpn.protocol.openvpn
 
 import android.net.ProxyInfo
-import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import net.openvpn.ovpn3.ClientAPI_Config
@@ -183,13 +182,11 @@ class OpenVpnClient(
     // Never called more than once per tun_builder session.
     override fun tun_builder_set_proxy_http(host: String, port: Int): Boolean {
         Log.d(TAG, "tun_builder_set_proxy_http: $host, $port")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            try {
-                configBuilder.setHttpProxy(ProxyInfo.buildDirectProxy(host, port))
-            } catch (e: Exception) {
-                Log.e(TAG, "Could not set proxy: ${e.message}")
-                return false
-            }
+        try {
+            configBuilder.setHttpProxy(ProxyInfo.buildDirectProxy(host, port))
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not set proxy: ${e.message}")
+            return false
         }
         return true
     }

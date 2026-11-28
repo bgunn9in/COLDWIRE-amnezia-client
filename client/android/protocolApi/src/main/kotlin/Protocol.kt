@@ -135,11 +135,9 @@ abstract class Protocol {
         Log.d(TAG, "setMtu: ${config.mtu}")
         vpnBuilder.setMtu(config.mtu)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            config.httpProxy?.let {
-                Log.d(TAG, "setHttpProxy: $it")
-                vpnBuilder.setHttpProxy(it)
-            }
+        config.httpProxy?.let {
+            Log.d(TAG, "setHttpProxy: $it")
+            vpnBuilder.setHttpProxy(it)
         }
 
         if (config.allowAllAF) {
@@ -151,8 +149,7 @@ abstract class Protocol {
         Log.d(TAG, "setBlocking: ${config.blockingMode}")
         vpnBuilder.setBlocking(config.blockingMode)
         vpnBuilder.setUnderlyingNetworks(null)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-            vpnBuilder.setMetered(false)
+        vpnBuilder.setMetered(false)
     }
 }
 

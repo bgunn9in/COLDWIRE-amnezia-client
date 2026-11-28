@@ -225,23 +225,21 @@ class AmneziaActivity : QtActivity() {
     }
 
     private fun registerBroadcastReceivers() {
-        notificationStateReceiver = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            registerBroadcastReceiver(
-                arrayOf(
-                    NotificationManager.ACTION_NOTIFICATION_CHANNEL_BLOCK_STATE_CHANGED,
-                    NotificationManager.ACTION_APP_BLOCK_STATE_CHANGED
-                )
-            ) {
-                Log.v(
-                    TAG, "Notification state changed: ${it?.action}, blocked = " +
-                        "${it?.getBooleanExtra(NotificationManager.EXTRA_BLOCKED_STATE, false)}"
-                )
-                mainScope.launch {
-                    qtInitialized.await()
-                    QtAndroidController.onNotificationStateChanged()
-                }
+        notificationStateReceiver = registerBroadcastReceiver(
+            arrayOf(
+                NotificationManager.ACTION_NOTIFICATION_CHANNEL_BLOCK_STATE_CHANGED,
+                NotificationManager.ACTION_APP_BLOCK_STATE_CHANGED
+            )
+        ) {
+            Log.v(
+                TAG, "Notification state changed: ${it?.action}, blocked = " +
+                    "${it?.getBooleanExtra(NotificationManager.EXTRA_BLOCKED_STATE, false)}"
+            )
+            mainScope.launch {
+                qtInitialized.await()
+                QtAndroidController.onNotificationStateChanged()
             }
-        } else null
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {

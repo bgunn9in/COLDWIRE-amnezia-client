@@ -249,17 +249,17 @@ class AmneziaTileService : TileService() {
             when (val protocolState = vpnState.protocolState) {
                 CONNECTED -> {
                     state = Tile.STATE_ACTIVE
-                    subtitleCompat = null
+                    subtitle = null
                 }
 
                 DISCONNECTED, UNKNOWN -> {
                     state = Tile.STATE_INACTIVE
-                    subtitleCompat = null
+                    subtitle = null
                 }
 
                 CONNECTING, DISCONNECTING, RECONNECTING -> {
                     state = Tile.STATE_UNAVAILABLE
-                    subtitleCompat = getString(protocolState)
+                    subtitle = getString(protocolState)
                 }
             }
             updateTile()
@@ -267,17 +267,4 @@ class AmneziaTileService : TileService() {
         // double update to fix weird visual glitches
         tile.updateTile()
     }
-
-    private var Tile.subtitleCompat: CharSequence?
-        set(value) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                this.subtitle = value
-            }
-        }
-        get() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                return this.subtitle
-            }
-            return null
-        }
 }
