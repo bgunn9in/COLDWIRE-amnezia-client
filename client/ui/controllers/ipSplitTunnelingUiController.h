@@ -24,7 +24,7 @@ public slots:
     void removeSites();
     void importSites(const QString &fileName, bool replaceExisting);
     void exportSites(const QString &fileName);
-    void loadRussianSites(bool expanded);
+    void loadRussianSites(const QString &name);
     void applyRussianSites();
     void toggleSplitTunneling(bool enabled);
     void setRouteMode(int routeMode);
@@ -42,7 +42,7 @@ signals:
     void finished(const QString &message);
     void saveFile(const QString &fileName, const QString &data);
     void russianSitesLoadingChanged();
-    void russianSitesReady(bool expanded, bool bundled);
+    void russianSitesReady(const QString &name, bool bundled);
 
 private:
     IpSplitTunnelingController* m_ipSplitTunnelingController;

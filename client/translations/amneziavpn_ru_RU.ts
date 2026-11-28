@@ -702,6 +702,10 @@ Already installed containers were found on the server. All installed containers 
 <context>
     <name>IpSplitTunnelingUiController</name>
     <message>
+        <source>No verified dedicated CDN list is published yet.</source>
+        <translation>Список подтверждённых выделенных адресов CDN пока не опубликован.</translation>
+    </message>
+    <message>
         <source>Could not load the Russian site list.</source>
         <translation>Не удалось загрузить список российских сайтов.</translation>
     </message>
@@ -5157,6 +5161,14 @@ Only one can be active at a time: VPN or local proxy</source>
 </context>
 <context>
     <name>PageSettingsSplitTunneling</name>
+    <message>
+        <source>Russian services and dedicated CDNs</source>
+        <translation>Российские сервисы и выделенные CDN</translation>
+    </message>
+    <message>
+        <source>Verified foreign CDN addresses for selected Russian services will also use your direct connection.</source>
+        <translation>Подтверждённые зарубежные адреса CDN выбранных российских сервисов тоже будут открываться напрямую.</translation>
+    </message>
     <message>
         <source>Russian services</source>
         <translation>Российские сервисы</translation>

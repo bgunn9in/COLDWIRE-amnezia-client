@@ -70,16 +70,17 @@ void IpSplitTunnelingUiController::exportSites(const QString &fileName)
     emit finished(tr("Export completed"));
 }
 
-void IpSplitTunnelingUiController::loadRussianSites(bool expanded)
+void IpSplitTunnelingUiController::loadRussianSites(const QString &name)
 {
-    if (m_russianSitesLoading) {
+    const bool dedicatedCdn = name == "ru-services-cdn";
+    if (m_russianSitesLoading || (!dedicatedCdn && name != "ru-services" && name != "ru-direct")) {
         return;
     }
     m_pendingRussianSites.clear();
     m_russianSitesLoading = true;
     emit russianSitesLoadingChanged();
 
-    const QString fileName = expanded ? "ru-direct.amnezia.json" : "ru-services.amnezia.json";
+    const QString fileName = name + ".amnezia.json";
     QNetworkRequest request{ QUrl("https://raw.githubusercontent.com/bgunn9in/coldwire/refs/heads/ru-lists/" + fileName) };
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(15000);
@@ -95,14 +96,16 @@ void IpSplitTunnelingUiController::loadRussianSites(bool expanded)
             reply->abort();
         }
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply, fileName, expanded]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, name, fileName, dedicatedCdn]() {
         reply->deleteLater();
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const bool expanded = name != "ru-services";
         if (reply->error() == QNetworkReply::NoError
-            && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200
+            && status == 200
             && reply->bytesAvailable() <= ruSiteList::maxBytes) {
             m_pendingRussianSites = ruSiteList::parse(reply->readAll(), expanded);
         }
-        const bool bundled = m_pendingRussianSites.isEmpty();
+        const bool bundled = m_pendingRussianSites.isEmpty() && !dedicatedCdn;
         if (bundled) {
             QFile file(":/site-lists/" + fileName);
             if (file.open(QIODevice::ReadOnly)) {
@@ -112,9 +115,11 @@ void IpSplitTunnelingUiController::loadRussianSites(bool expanded)
         m_russianSitesLoading = false;
         emit russianSitesLoadingChanged();
         if (m_pendingRussianSites.isEmpty()) {
-            emit errorOccurred(tr("Could not load the Russian site list."));
+            emit errorOccurred(dedicatedCdn && status == 404
+                               ? tr("No verified dedicated CDN list is published yet.")
+                               : tr("Could not load the Russian site list."));
         } else {
-            emit russianSitesReady(expanded, bundled);
+            emit russianSitesReady(name, bundled);
         }
     });
 }

@@ -29,7 +29,9 @@ If your administrator gave you a converted administrator profile, the server sho
 
 The list menu is shared by Windows, Apple Silicon macOS, and both Android ARM64 builds. Disconnect the VPN and open **Connection → Site-based split tunneling** in Settings. In the three-dot menu, choose **Russian services** for the shorter list or **Russian IPv4 ranges** for broader coverage. The wider list also sends some foreign IPv4 addresses through your ISP. Use the same menu whenever you want to refresh the list.
 
-COLDWIRE downloads the selected list and asks before replacing your **Directly** rules. If the download fails, it offers the copy bundled with the app. You can back up your current rules with **Save site list** or import your own JSON with **Replace site list**.
+Choose **Russian services and dedicated CDNs** to include verified, dedicated foreign CDN addresses for selected services. This option needs a current download. If the CDN list is unavailable, COLDWIRE keeps your current rules. [List sources and formats](https://github.com/bgunn9in/coldwire/blob/main/docs/lists.md)
+
+COLDWIRE asks before replacing your **Directly** rules. **Russian services** and **Russian IPv4 ranges** have bundled copies for offline use. To back up your current rules, choose **Save site list**. To load your own JSON, choose **Replace site list**.
 
 Reconnect and check a listed site and a control site routed through B. When repeating the split-tunneling test on Android 10, turn off **App-based split tunneling**. [Huawei test results](huawei-android10.md)
 

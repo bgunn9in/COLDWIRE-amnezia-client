@@ -44,9 +44,9 @@ PageType {
             PageController.showErrorMessage(errorMessage)
         }
 
-        function onRussianSitesReady(expanded, bundled) {
+        function onRussianSitesReady(name, bundled) {
             if (root.visible && root.pageEnabled) {
-                root.confirmRussianSites(expanded, bundled)
+                root.confirmRussianSites(name, bundled)
             }
         }
     }
@@ -57,6 +57,11 @@ PageType {
     ]
 
     readonly property int routeModeIndex: IpSplitTunnelingController.routeMode === 2 ? 1 : 0
+    readonly property var russianListTitles: ({
+        "ru-services": qsTr("Russian services"),
+        "ru-services-cdn": qsTr("Russian services and dedicated CDNs"),
+        "ru-direct": qsTr("Russian IPv4 ranges")
+    })
 
     ListViewType {
         id: listView
@@ -231,20 +236,29 @@ PageType {
         id: moreActionsMenu
 
         PopupMenuItemType {
-            text: qsTr("Russian services")
+            text: root.russianListTitles["ru-services"]
             enabled: root.pageEnabled && !IpSplitTunnelingController.russianSitesLoading
             onClicked: {
                 moreActionsMenu.close()
-                root.loadRussianSites(false)
+                root.loadRussianSites("ru-services")
             }
         }
 
         PopupMenuItemType {
-            text: qsTr("Russian IPv4 ranges")
+            text: root.russianListTitles["ru-services-cdn"]
             enabled: root.pageEnabled && !IpSplitTunnelingController.russianSitesLoading
             onClicked: {
                 moreActionsMenu.close()
-                root.loadRussianSites(true)
+                root.loadRussianSites("ru-services-cdn")
+            }
+        }
+
+        PopupMenuItemType {
+            text: root.russianListTitles["ru-direct"]
+            enabled: root.pageEnabled && !IpSplitTunnelingController.russianSitesLoading
+            onClicked: {
+                moreActionsMenu.close()
+                root.loadRussianSites("ru-direct")
             }
         }
 
@@ -333,16 +347,18 @@ PageType {
         }
     }
 
-    function loadRussianSites(expanded) {
+    function loadRussianSites(name) {
         PageController.showNotificationMessage(qsTr("Downloading the site list…"))
-        IpSplitTunnelingController.loadRussianSites(expanded)
+        IpSplitTunnelingController.loadRussianSites(name)
     }
 
-    function confirmRussianSites(expanded, bundled) {
-        const title = expanded ? qsTr("Russian IPv4 ranges") : qsTr("Russian services")
+    function confirmRussianSites(name, bundled) {
+        const title = root.russianListTitles[name]
         let details = qsTr("This replaces your current Directly list and turns on site-based split tunneling.")
-        if (expanded) {
+        if (name === "ru-direct") {
             details += "\n\n" + qsTr("This list also sends some non-Russian IPv4 addresses outside the VPN.")
+        } else if (name === "ru-services-cdn") {
+            details += "\n\n" + qsTr("Verified foreign CDN addresses for selected Russian services will also use your direct connection.")
         }
         if (bundled) {
             details += "\n\n" + qsTr("The download failed. You can apply the list bundled with this version of COLDWIRE.")

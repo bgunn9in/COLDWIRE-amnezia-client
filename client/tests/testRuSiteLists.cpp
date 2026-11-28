@@ -35,6 +35,14 @@ private slots:
         QVERIFY(ruSiteList::parse(R"([{"hostname":"direct-0-0-0-0-0.invalid","ip":"0.0.0.0/0"}])", false).isEmpty());
         QVERIFY(ruSiteList::parse(valid + QByteArray(ruSiteList::maxBytes, ' '), false).isEmpty());
     }
+
+    void dedicatedCdnEntry()
+    {
+        const QByteArray json = R"([{"hostname":"direct-2-56-0-0-32.invalid","ip":"2.56.0.0/32"}])";
+        const auto sites = ruSiteList::parse(json, true);
+        QCOMPARE(sites.size(), 1);
+        QCOMPARE(sites.value("direct-2-56-0-0-32.invalid"), QStringList { "2.56.0.0/32" });
+    }
 };
 
 QTEST_GUILESS_MAIN(TestRuSiteLists)
