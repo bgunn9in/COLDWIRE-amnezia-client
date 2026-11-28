@@ -67,10 +67,14 @@ void IpSplitTunnelingController::addSites(const QMap<QString, QStringList> &site
             m_sites.append(qMakePair(hostname, ips));
         }
     }
-    if (replaceExisting) {
-        m_appSettingsRepository->removeAllVpnSites(m_currentRouteMode);
-    }
-    m_appSettingsRepository->addVpnSites(m_currentRouteMode, sites);
+    m_appSettingsRepository->addVpnSites(m_currentRouteMode, sites, replaceExisting);
+}
+
+void IpSplitTunnelingController::replaceDirectSites(const QMap<QString, QStringList> &sites)
+{
+    m_appSettingsRepository->addVpnSites(RouteMode::VpnAllExceptSites, sites, true);
+    setRouteMode(RouteMode::VpnAllExceptSites);
+    toggleSplitTunneling(true);
 }
 
 bool IpSplitTunnelingController::addSite(const QString &hostname)
@@ -87,7 +91,10 @@ bool IpSplitTunnelingController::addSite(const QString &hostname)
     }
     
     if (addSiteInternal(normalizedHostname, {})) {
-        QHostInfo::lookupHost(normalizedHostname, this, SLOT(onHostResolved(QHostInfo)));
+        QHostInfo::lookupHost(normalizedHostname, this,
+                              [this, mode = m_currentRouteMode, normalizedHostname](const QHostInfo &info) {
+            onHostResolved(mode, normalizedHostname, info);
+        });
         return true;
     }
     
@@ -175,10 +182,12 @@ bool IpSplitTunnelingController::validateHostname(const QString &hostname) const
 }
 
 
-void IpSplitTunnelingController::onHostResolved(const QHostInfo &hostInfo)
+void IpSplitTunnelingController::onHostResolved(RouteMode mode, const QString &hostname, const QHostInfo &hostInfo)
 {
+    if (!m_appSettingsRepository->vpnSites(mode).contains(hostname)) {
+        return;
+    }
     const QList<QHostAddress> &addresses = hostInfo.addresses();
-    QString hostname = hostInfo.hostName();
 
     QStringList allIpv4;
     for (const QHostAddress &addr : addresses) {
@@ -190,24 +199,20 @@ void IpSplitTunnelingController::onHostResolved(const QHostInfo &hostInfo)
     qDebug() << "[SplitTunneling] Host resolved:" << hostname
              << "-> adding all IPv4 addresses to list:" << allIpv4;
 
-    if (!allIpv4.isEmpty()) {
-        processSiteAfterResolve(hostname, allIpv4);
+    if (allIpv4.isEmpty()) {
+        return;
     }
-}
 
-void IpSplitTunnelingController::processSiteAfterResolve(const QString &hostname, const QStringList &ips)
-{
-    for (int i = 0; i < m_sites.size(); i++) {
-        if (m_sites[i].first == hostname) {
-            for (const QString &ip : ips) {
-                if (!ip.isEmpty() && !m_sites[i].second.contains(ip)) {
-                    m_sites[i].second.append(ip);
-                }
+    if (mode == m_currentRouteMode) {
+        for (auto &site : m_sites) {
+            if (site.first == hostname) {
+                site.second.append(allIpv4);
+                site.second.removeDuplicates();
+                break;
             }
-            break;
         }
     }
-    m_appSettingsRepository->addVpnSite(m_currentRouteMode, hostname, ips);
+    m_appSettingsRepository->addVpnSite(mode, hostname, allIpv4);
 }
 
 void IpSplitTunnelingController::processSite(const QString &hostname, const QStringList &ips)

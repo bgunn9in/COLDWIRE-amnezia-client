@@ -12,6 +12,7 @@ class IpSplitTunnelingUiController : public QObject
 
     Q_PROPERTY(int routeMode READ getRouteMode WRITE setRouteMode NOTIFY routeModeChanged)
     Q_PROPERTY(bool isSplitTunnelingEnabled READ isSplitTunnelingEnabled NOTIFY isSplitTunnelingEnabledChanged)
+    Q_PROPERTY(bool russianSitesLoading READ russianSitesLoading NOTIFY russianSitesLoadingChanged)
 
 public:
     explicit IpSplitTunnelingUiController(IpSplitTunnelingController* ipSplitTunnelingController,
@@ -23,11 +24,14 @@ public slots:
     void removeSites();
     void importSites(const QString &fileName, bool replaceExisting);
     void exportSites(const QString &fileName);
+    void loadRussianSites(bool expanded);
+    void applyRussianSites();
     void toggleSplitTunneling(bool enabled);
     void setRouteMode(int routeMode);
 
     int getRouteMode() const;
     bool isSplitTunnelingEnabled() const;
+    bool russianSitesLoading() const;
 
     void updateModel();
 
@@ -37,10 +41,14 @@ signals:
     void errorOccurred(const QString &errorMessage);
     void finished(const QString &message);
     void saveFile(const QString &fileName, const QString &data);
+    void russianSitesLoadingChanged();
+    void russianSitesReady(bool expanded, bool bundled);
 
 private:
     IpSplitTunnelingController* m_ipSplitTunnelingController;
     IpSplitTunnelingModel* m_ipSplitTunnelingModel;
+    QMap<QString, QStringList> m_pendingRussianSites;
+    bool m_russianSitesLoading = false;
 };
 
 #endif // IPSPLITTUNNELINGUICONTROLLER_H

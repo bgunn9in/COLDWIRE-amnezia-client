@@ -22,17 +22,14 @@ PageType {
 
     property var isServerFromTelegramApi: ServersUiController.isServerFromApi(ServersUiController.defaultServerId)
     
-    property bool pageEnabled
+    readonly property bool pageEnabled: !ConnectionController.isConnected && !ConnectionController.isConnectionInProgress
+                                        && !ServersUiController.isDefaultServerDefaultContainerHasSplitTunneling
 
     Component.onCompleted: {
         if (ConnectionController.isConnected) {
             PageController.showNotificationMessage(qsTr("Cannot change split tunneling settings during active connection"))
-            root.pageEnabled = false
         } else if (ServersUiController.isDefaultServerDefaultContainerHasSplitTunneling) {
             PageController.showNotificationMessage(qsTr("Default server does not support split tunneling function"))
-            root.pageEnabled = false
-        } else {
-            root.pageEnabled = true
         }
     }
 
@@ -45,6 +42,12 @@ PageType {
 
         function onErrorOccurred(errorMessage) {
             PageController.showErrorMessage(errorMessage)
+        }
+
+        function onRussianSitesReady(expanded, bundled) {
+            if (root.visible && root.pageEnabled) {
+                root.confirmRussianSites(expanded, bundled)
+            }
         }
     }
 
@@ -228,6 +231,26 @@ PageType {
         id: moreActionsMenu
 
         PopupMenuItemType {
+            text: qsTr("Russian services")
+            enabled: root.pageEnabled && !IpSplitTunnelingController.russianSitesLoading
+            onClicked: {
+                moreActionsMenu.close()
+                root.loadRussianSites(false)
+            }
+        }
+
+        PopupMenuItemType {
+            text: qsTr("Russian IPv4 ranges")
+            enabled: root.pageEnabled && !IpSplitTunnelingController.russianSitesLoading
+            onClicked: {
+                moreActionsMenu.close()
+                root.loadRussianSites(true)
+            }
+        }
+
+        PopupMenuSeparatorType {}
+
+        PopupMenuItemType {
             id: addImportedSitesButton
 
             text: qsTr("Add imported sites to existing ones")
@@ -308,6 +331,27 @@ PageType {
         if (fileName !== "") {
             root.importSites(fileName, replaceExistingSites)
         }
+    }
+
+    function loadRussianSites(expanded) {
+        PageController.showNotificationMessage(qsTr("Downloading the site list…"))
+        IpSplitTunnelingController.loadRussianSites(expanded)
+    }
+
+    function confirmRussianSites(expanded, bundled) {
+        const title = expanded ? qsTr("Russian IPv4 ranges") : qsTr("Russian services")
+        let details = qsTr("This replaces your current Directly list and turns on site-based split tunneling.")
+        if (expanded) {
+            details += "\n\n" + qsTr("This list also sends some non-Russian IPv4 addresses outside the VPN.")
+        }
+        if (bundled) {
+            details += "\n\n" + qsTr("The download failed. You can apply the list bundled with this version of COLDWIRE.")
+        }
+        Dialogs.askQuestion(title, details, qsTr("Replace site list"), qsTr("Cancel"), function() {
+            if (root.visible && root.pageEnabled) {
+                IpSplitTunnelingController.applyRussianSites()
+            }
+        }, function() {})
     }
 
     function importSites(fileName, replaceExistingSites) {

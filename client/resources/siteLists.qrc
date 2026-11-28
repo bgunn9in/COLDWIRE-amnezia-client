@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/site-lists">
+        <file alias="ru-direct.amnezia.json">site-lists/ru-direct.amnezia.json</file>
+        <file alias="ru-services.amnezia.json">site-lists/ru-services.amnezia.json</file>
+    </qresource>
+</RCC>

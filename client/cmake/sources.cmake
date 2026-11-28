@@ -148,6 +148,7 @@ set(SOURCES ${SOURCES}
     ${CLIENT_ROOT_DIR}/core/protocols/vpnProtocol.cpp
     ${CLIENT_ROOT_DIR}/core/utils/selfhosted/sshClient.cpp
     ${CLIENT_ROOT_DIR}/core/utils/networkUtilities.cpp
+    ${CLIENT_ROOT_DIR}/core/utils/ruSiteList.cpp
     ${CLIENT_ROOT_DIR}/core/utils/payloadSender.cpp
     ${CLIENT_ROOT_DIR}/core/utils/serialization/outbound.cpp
     ${CLIENT_ROOT_DIR}/core/utils/serialization/inbound.cpp

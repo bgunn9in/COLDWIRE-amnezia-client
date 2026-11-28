@@ -159,9 +159,9 @@ bool SecureAppSettingsRepository::addVpnSite(RouteMode mode, const QString &site
     return true;
 }
 
-void SecureAppSettingsRepository::addVpnSites(RouteMode mode, const QMap<QString, QStringList> &sites)
+void SecureAppSettingsRepository::addVpnSites(RouteMode mode, const QMap<QString, QStringList> &sites, bool replaceExisting)
 {
-    QVariantMap allSites = vpnSites(mode);
+    QVariantMap allSites = replaceExisting ? QVariantMap() : vpnSites(mode);
     for (auto i = sites.constBegin(); i != sites.constEnd(); ++i) {
         const QString &site = i.key();
 

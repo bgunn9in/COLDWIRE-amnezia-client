@@ -502,3 +502,13 @@ endif()
 # CTest cannot run Android binaries on the host machine, so no add_test() entries are registered here.
 
 amnezia_copy_runtime_dlls()
+
+if(NOT ANDROID)
+    add_executable(test_ru_site_lists
+        testRuSiteLists.cpp
+        ../core/utils/ruSiteList.cpp
+        ../resources/siteLists.qrc
+    )
+    target_link_libraries(test_ru_site_lists PRIVATE Qt6::Test Qt6::Network)
+    add_test(NAME RuSiteListsTest COMMAND test_ru_site_lists)
+endif()

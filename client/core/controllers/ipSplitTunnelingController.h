@@ -36,17 +36,15 @@ public:
     QVector<QPair<QString, QStringList>> getCurrentSites() const;
 
     bool importSitesFromJson(const QByteArray& jsonData, bool replaceExisting, QString &errorMessage);
+    void replaceDirectSites(const QMap<QString, QStringList> &sites);
     QByteArray exportSitesToJson() const;
 
-private slots:
-    void onHostResolved(const QHostInfo &hostInfo);
-
 private:
+    void onHostResolved(RouteMode mode, const QString &hostname, const QHostInfo &hostInfo);
     void fillSites();
     bool addSiteInternal(const QString &hostname, const QStringList &ips);
     QString normalizeHostname(const QString &hostname) const;
     bool validateHostname(const QString &hostname) const;
-    void processSiteAfterResolve(const QString &hostname, const QStringList &ips);
     void processSite(const QString &hostname, const QStringList &ips);
 
     SecureAppSettingsRepository* m_appSettingsRepository;

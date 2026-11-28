@@ -702,6 +702,14 @@ Already installed containers were found on the server. All installed containers 
 <context>
     <name>IpSplitTunnelingUiController</name>
     <message>
+        <source>Could not load the Russian site list.</source>
+        <translation>Не удалось загрузить список российских сайтов.</translation>
+    </message>
+    <message>
+        <source>Russian site list applied.</source>
+        <translation>Список российских сайтов применён.</translation>
+    </message>
+    <message>
         <location filename="../ui/controllers/ipSplitTunnelingUiController.cpp" line="22"/>
         <source>New site added: %1</source>
         <translation>Добавлен новый сайт: %1</translation>
@@ -5149,6 +5157,30 @@ Only one can be active at a time: VPN or local proxy</source>
 </context>
 <context>
     <name>PageSettingsSplitTunneling</name>
+    <message>
+        <source>Russian services</source>
+        <translation>Российские сервисы</translation>
+    </message>
+    <message>
+        <source>Russian IPv4 ranges</source>
+        <translation>Российские диапазоны IPv4</translation>
+    </message>
+    <message>
+        <source>Downloading the site list…</source>
+        <translation>Загружаем список сайтов…</translation>
+    </message>
+    <message>
+        <source>This replaces your current Directly list and turns on site-based split tunneling.</source>
+        <translation>Текущий список «Напрямую» будет заменён. Раздельное туннелирование сайтов включится.</translation>
+    </message>
+    <message>
+        <source>This list also sends some non-Russian IPv4 addresses outside the VPN.</source>
+        <translation>Часть зарубежных IPv4-адресов тоже будет открываться напрямую.</translation>
+    </message>
+    <message>
+        <source>The download failed. You can apply the list bundled with this version of COLDWIRE.</source>
+        <translation>Не удалось скачать свежий список. Можно применить список из этой версии COLDWIRE.</translation>
+    </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsSplitTunneling.qml" line="29"/>
         <source>Cannot change split tunneling settings during active connection</source>

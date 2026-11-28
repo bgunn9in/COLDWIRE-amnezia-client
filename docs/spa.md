@@ -25,9 +25,13 @@ On Android, open the APK for your Android version. If prompted, allow your file 
 
 If your administrator gave you a converted administrator profile, the server shown in its card may be B. The VPN endpoint in the profile still goes to A. Manage SSH and device access in the [COLDWIRE panel](https://github.com/bgunn9in/coldwire).
 
-## Use a site list on Android
+## Route Russian sites through your ISP
 
-Turn on **Site-based split tunneling**, select **Directly**, then use **Replace site list** to import either `ru-services` or `ru-direct`. To reproduce the Android 10 test, turn off **App-based split tunneling** and reconnect after importing each list. Check a site in the list and a control site routed through B. [Huawei test results](huawei-android10.md)
+The list menu is shared by Windows, Apple Silicon macOS, and both Android ARM64 builds. Disconnect the VPN and open **Connection → Site-based split tunneling** in Settings. In the three-dot menu, choose **Russian services** for the shorter list or **Russian IPv4 ranges** for broader coverage. The wider list also sends some foreign IPv4 addresses through your ISP. Use the same menu whenever you want to refresh the list.
+
+COLDWIRE downloads the selected list and asks before replacing your **Directly** rules. If the download fails, it offers the copy bundled with the app. You can back up your current rules with **Save site list** or import your own JSON with **Replace site list**.
+
+Reconnect and check a listed site and a control site routed through B. When repeating the split-tunneling test on Android 10, turn off **App-based split tunneling**. [Huawei test results](huawei-android10.md)
 
 ## What happens when you connect
 

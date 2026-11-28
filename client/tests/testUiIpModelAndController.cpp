@@ -54,9 +54,37 @@ private slots:
     void init()
     {
         m_settings->clearSettings();
+        m_coreController->m_ipSplitTunnelingController->setRouteMode(RouteMode::VpnOnlyForwardSites);
         if (m_coreController->m_serversModel) {
             m_coreController->m_serversModel->updateModel(QVector<ServerDescription>(), QString{});
         }
+    }
+
+    void testReplaceDirectSites()
+    {
+        auto *controller = m_coreController->m_ipSplitTunnelingController;
+        auto *settings = m_coreController->m_appSettingsRepository;
+        const QMap<QString, QStringList> previous{ { "old.example", { "192.0.2.10" } } };
+        const QMap<QString, QStringList> vpn{ { "vpn.example", { "192.0.2.20" } } };
+        const QMap<QString, QStringList> replacement{ { "direct-192-168-0-0-16.invalid", { "192.168.0.0/16" } } };
+        settings->addVpnSites(RouteMode::VpnOnlyForwardSites, vpn);
+        settings->addVpnSites(RouteMode::VpnAllExceptSites, previous);
+        controller->setRouteMode(RouteMode::VpnOnlyForwardSites);
+        controller->toggleSplitTunneling(false);
+        settings->setAppsSplitTunnelingEnabled(true);
+
+        QSignalSpy sitesChanged(settings, &SecureAppSettingsRepository::sitesChanged);
+        controller->replaceDirectSites(replacement);
+
+        QCOMPARE(sitesChanged.size(), 1);
+        QCOMPARE(settings->vpnSites(RouteMode::VpnOnlyForwardSites).keys(), vpn.keys());
+        const auto direct = settings->vpnSites(RouteMode::VpnAllExceptSites);
+        QCOMPARE(direct.keys(), replacement.keys());
+        QCOMPARE(direct.value(replacement.firstKey()).toStringList(), replacement.first());
+        QCOMPARE(m_coreController->m_ipSplitTunnelingModel->rowCount(), 1);
+        QCOMPARE(controller->getRouteMode(), RouteMode::VpnAllExceptSites);
+        QVERIFY(controller->isSplitTunnelingEnabled());
+        QVERIFY(settings->isAppsSplitTunnelingEnabled());
     }
 
     void testRolesAndSignals()
