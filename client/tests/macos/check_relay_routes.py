@@ -205,6 +205,10 @@ def main(root, physical, outer):
     assert len(set(targets)) == 3
     for address in targets:
         IPv4Address(address)
+    assert targets[1] == '2.56.0.0'
+    compact = json.loads(Path('admin-panel/ru-services.amnezia.json').read_text())
+    compact.append({'hostname': 'direct-2-56-0-0-32.invalid', 'ip': '2.56.0.0/32'})
+    Path('admin-panel/ru-services-cdn.amnezia.json').write_text(json.dumps(compact))
     original = route('default')
     assert re.fullmatch(r'gif\d+', physical) and route(gateway)['interface'] == physical
     assert f'inet {provider} ' in subprocess.check_output(['/sbin/ifconfig', physical], text=True), physical
@@ -238,6 +242,7 @@ def main(root, physical, outer):
         print(f'PASS macOS IPv4 without VPN: observer={baseline}', flush=True)
         modes = [('all', (exit_ip, exit_ip, exit_ip)),
                  ('ru-services', (provider, exit_ip, exit_ip)),
+                 ('ru-services-cdn', (provider, provider, exit_ip)),
                  ('ru-direct', (provider, provider, exit_ip))]
         if package:
             modes.insert(0, modes.pop())

@@ -82,9 +82,9 @@ def configure():
     common = next(str(address) for prefix in services
                   for address in (prefix.network_address + (prefix.num_addresses > 1),)
                   if address.is_global and any(address in other for other in direct))
-    direct_only = next(str(address) for prefix in direct
-                       for address in (prefix.network_address, prefix.broadcast_address)
-                       if address.is_global and all(address not in other for other in services))
+    direct_only = '2.56.0.0'
+    assert any(IPv4Address(direct_only) in prefix for prefix in direct)
+    assert all(IPv4Address(direct_only) not in prefix for prefix in services)
     outside = '203.0.113.17'
     assert all(IPv4Address(outside) not in prefix for prefix in services + direct)
     targets = (common, direct_only, outside)
