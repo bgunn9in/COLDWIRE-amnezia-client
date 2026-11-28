@@ -25,6 +25,10 @@ On Android, open the APK for your Android version. If prompted, allow your file 
 
 If your administrator gave you a converted administrator profile, the server shown in its card may be B. The VPN endpoint in the profile still goes to A. Manage SSH and device access in the [COLDWIRE panel](https://github.com/bgunn9in/coldwire).
 
+## Use a site list on Android
+
+Turn on **Site-based split tunneling**, select **Directly**, then use **Replace site list** to import either `ru-services` or `ru-direct`. To reproduce the Android 10 test, turn off **App-based split tunneling** and reconnect after importing each list. Check a site in the list and a control site routed through B. [Huawei test results](huawei-android10.md)
+
 ## What happens when you connect
 
 The app sends an authenticated SPA request to A. A verifies that the client holds the device key and can receive a reply at its address, then admits that IPv4 for 120 seconds. The app starts AmneziaWG over the admitted route and normally refreshes the lease every 40 seconds. When your public IPv4 changes, the new address needs a fresh grant.
